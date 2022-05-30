@@ -1,0 +1,15 @@
+{
+  "server": { 
+    "port": 8080,
+    "protocol": "http",
+    "host": "127.0.0.1"
+  },
+  "saml": {
+    "keys": {
+      "uid":  "urn:oid:0.9.2342.19200300.100.1.1",
+      "prenom": "urn:oid:2.5.4.42",
+      "nom": "urn:oid:2.5.4.4",
+      "email": "urn:oid:0.9.2342.19200300.100.1.3"
+    }
+  }
+}
