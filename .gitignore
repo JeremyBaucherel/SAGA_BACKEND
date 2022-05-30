@@ -1,0 +1,13 @@
+*/*.pyc
+/.spyderproject
+/.vscode
+*.pyc
+sy_httpd.egg-info/*
+
+sy_httpd/config.pyc
+sy_httpd/web/handler/__init__.pyc
+sy_httpd.egg-info/dependency_links.txt
+*.pyc
+sy_httpd/web/handler/qn.pyc
+libs/sap/__init__.pyc
+saga_httpd/config.py
