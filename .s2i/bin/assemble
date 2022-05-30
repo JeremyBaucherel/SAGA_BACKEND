@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo "------------"
+echo "[ASSEMBLING]"
+echo "------------"
+set -e
+
+shopt -s dotglob
+
+echo "[Installing application source]"
+bash /usr/libexec/airbuss2i/assemble
+
+echo "[Setting up ~/.pydistutils.cfg]"
+echo '[easy_install]' >> ~/.pydistutils.cfg
+echo "index-url=$PIP_INDEX_URL" >> ~/.pydistutils.cfg
+cat ~/.pydistutils.cfg
+
+echo "[Installing dependencies]"
+
+pip install $PIP_OPTIONS -r requirements.txt
+pip install $PIP_OPTIONS .
