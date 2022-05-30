@@ -16,7 +16,7 @@ import sqlalchemy
 import tornado.web
 import tornado.template
 import config
-import asgard_db
+import saga_db
 #from onelogin.saml2.auth import OneLogin_Saml2_Auth
 #from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
@@ -41,14 +41,14 @@ class User (TypedDict):
     prenom: str
     autorisations: List[str]
     rgpd_date: Optional[datetime.datetime]
-    _db: Optional[asgard_db.Utilisateur]
+    _db: Optional[saga_db.Utilisateur]
 
 class RandomFailError(Exception):
     pass
 
 
 class RequestHandler(tornado.web.RequestHandler):
-    """Default request handler used throughout Asgard API."""
+    """Default request handler used throughout SAGA API."""
 
     def init_saml_auth(self, req):
         """
@@ -138,7 +138,7 @@ class RequestHandler(tornado.web.RequestHandler):
 
         if self.db_session and session_id and logon:
             logon = logon.upper()
-            db_user = self.db_session.query(asgard_db.Utilisateur).filter(asgard_db.Utilisateur.logon == logon).first()
+            db_user = self.db_session.query(saga_db.Utilisateur).filter(saga_db.Utilisateur.logon == logon).first()
             if db_user and db_user.session_id == session_id:
                 user = {
                     u"connecte": True,
@@ -179,11 +179,11 @@ class RequestHandler(tornado.web.RequestHandler):
         autorisations = []
 
         if self.db_session:
-            qry = self.db_session.query(asgard_db.Autorisation) \
-                .join(asgard_db.RoleAutorisation) \
-                .join(asgard_db.Role) \
-                .join(asgard_db.UtilisateurRole) \
-                .filter(asgard_db.UtilisateurRole.id_users == user_id)
+            qry = self.db_session.query(saga_db.Autorisation) \
+                .join(saga_db.RoleAutorisation) \
+                .join(saga_db.Role) \
+                .join(saga_db.UtilisateurRole) \
+                .filter(saga_db.UtilisateurRole.id_users == user_id)
 
             for authorisation in qry.all():
                 autorisations.append(authorisation.nom)
@@ -198,9 +198,9 @@ class RequestHandler(tornado.web.RequestHandler):
         roles = []
 
         if self.db_session:
-            qry = self.db_session.query(asgard_db.Role) \
-                .join(asgard_db.UtilisateurRole) \
-                .filter(asgard_db.UtilisateurRole.id_users == user_id)
+            qry = self.db_session.query(saga_db.Role) \
+                .join(saga_db.UtilisateurRole) \
+                .filter(saga_db.UtilisateurRole.id_users == user_id)
 
             for role in qry.all():
                 roles.append(role.nom)
@@ -215,9 +215,9 @@ class RequestHandler(tornado.web.RequestHandler):
         gammes = []
 
         if self.db_session:
-            qry = self.db_session.query(asgard_db.RoutingGTI) \
-                .join(asgard_db.UsersRoutingGTI) \
-                .filter(asgard_db.UsersRoutingGTI.id_users == user_id)
+            qry = self.db_session.query(saga_db.RoutingGTI) \
+                .join(saga_db.UsersRoutingGTI) \
+                .filter(saga_db.UsersRoutingGTI.id_users == user_id)
 
             for gamme in qry.all():
                 gammes.append(str(gamme.CptGrpGamme)+"|"+str(gamme.Gamme))
@@ -255,13 +255,13 @@ class RequestHandler(tornado.web.RequestHandler):
         self.set_header(u"Access-Control-Allow-Methods", u"POST, PUT, GET, OPTIONS, DELETE")
         self.set_header(u"Access-Control-Allow-Credentials", u"true")
 
-    def sign_in(self, logon: str, pwd: str) -> Optional[asgard_db.Utilisateur]:
+    def sign_in(self, logon: str, pwd: str) -> Optional[saga_db.Utilisateur]:
         """Sign a user in.
         :returns: A DB user object if sign in was successfull, None otherwise.
         """
 
         if logon and pwd and self.db_session:
-            db_user = self.db_session.query(asgard_db.Utilisateur).filter(asgard_db.Utilisateur.logon == logon.upper()).first()
+            db_user = self.db_session.query(saga_db.Utilisateur).filter(saga_db.Utilisateur.logon == logon.upper()).first()
 
             if db_user:
                 hash_method = db_user.mdp_methode
@@ -271,7 +271,7 @@ class RequestHandler(tornado.web.RequestHandler):
                     _, hash_salt = u"", u""
 
                 hasher = hashlib.sha512()
-                hasher.update(u"{}:{}:ASGARD".format(hash_salt, pwd).encode("utf-8"))
+                hasher.update(u"{}:{}:SAGA".format(hash_salt, pwd).encode("utf-8"))
                 hashed_password = hasher.hexdigest()
 
                 if hashed_password == db_user.mdp:

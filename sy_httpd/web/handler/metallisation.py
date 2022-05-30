@@ -11,7 +11,7 @@ import uuid
 import datetime
 import config
 import web.handler
-import asgard_db
+import saga_db
 
 
 
@@ -43,14 +43,14 @@ class DashboardHandler(web.handler.JsonHandler):
 
         if out.ok() and user_id:
 
-            qry = self.db_session.query(asgard_db.ProcessPV) \
-                .join(asgard_db.RoutingGTI) \
-                .join(asgard_db.UsersRoutingGTI) \
-                .join(asgard_db.ProcessRoutingGTI) \
-                .filter(asgard_db.ProcessRoutingGTI.processName == 'METALLISATION') \
-                .filter(asgard_db.ProcessRoutingGTI.id_statut == 3) \
-                .filter(asgard_db.UsersRoutingGTI.id_users == user_id) \
-                .order_by(asgard_db.ProcessPV.dateEntreeStation.desc())
+            qry = self.db_session.query(saga_db.ProcessPV) \
+                .join(saga_db.RoutingGTI) \
+                .join(saga_db.UsersRoutingGTI) \
+                .join(saga_db.ProcessRoutingGTI) \
+                .filter(saga_db.ProcessRoutingGTI.processName == 'METALLISATION') \
+                .filter(saga_db.ProcessRoutingGTI.id_statut == 3) \
+                .filter(saga_db.UsersRoutingGTI.id_users == user_id) \
+                .order_by(saga_db.ProcessPV.dateEntreeStation.desc())
 
             dashboard=[]
             

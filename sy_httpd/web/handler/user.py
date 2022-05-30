@@ -9,7 +9,7 @@ import uuid
 import datetime
 import config
 import web.handler
-import asgard_db
+import saga_db
 
 @web.route(u"/api/utilisateurs/roles")
 class RolesHandler(web.handler.JsonHandler):
@@ -30,7 +30,7 @@ class RolesHandler(web.handler.JsonHandler):
         roles: List[RolesHandler.JsonRole] = []
         
         if self.db_session:
-            qry = self.db_session.query(asgard_db.Role).all()
+            qry = self.db_session.query(saga_db.Role).all()
             
             for db_role in qry:
                 role: RolesHandler.JsonRole = {
@@ -43,46 +43,6 @@ class RolesHandler(web.handler.JsonHandler):
 
         return roles
 
-@web.route(u"/api/utilisateurs/gammes")
-class GammesHandler(web.handler.JsonHandler):
-
-    class JsonGamme(TypedDict):
-        id: int
-        gamme: str
-        cptgrgamme: str
-
-    def get(self) -> None:
-        """Return a list of the gammes """
-
-        resp = web.handler.JsonResponse[List[GammesHandler.JsonGamme]]()
-        resp.set_body(self._get_gammes())
-        self.write_json(resp.to_dict())
-
-    def _get_gammes(self) -> List['GammesHandler.JsonGamme']:
-        gammes: List[GammesHandler.JsonGamme] = []
-        
-        if self.db_session:
-            #q1 = self.db_session.query(asgard_db.RoutingGTI).filter(asgard_db.RoutingGTI.COMS==1)
-            #q2 = self.db_session.query(asgard_db.RoutingGTI).filter(asgard_db.RoutingGTI.FIBREOPTIQUE==1)
-            #q3 = self.db_session.query(asgard_db.RoutingGTI).filter(asgard_db.RoutingGTI.ESN==1)
-            #q4 = self.db_session.query(asgard_db.RoutingGTI).filter(asgard_db.RoutingGTI.METALLISATION==1)
-
-            #qry = q1.union(q2).union(q3).union(q4).all()
-
-            qry = self.db_session.query(asgard_db.RoutingGTI) \
-                                    .join(asgard_db.ProcessRoutingGTI) \
-                                    .filter(asgard_db.ProcessRoutingGTI.id_statut == 3)
-            for db_gamme in qry:
-                gamme: GammesHandler.JsonGamme = {
-                    u"id": db_gamme.id,
-                    u"gamme": db_gamme.Gamme,
-                    u"cptgrgamme": db_gamme.CptGrpGamme,
-                    u"description": db_gamme.DescriptionSAP,
-                }
-
-                gammes.append(gamme)
-
-        return gammes
 
 @web.route(u"/api/utilisateurs/connexion")
 class SignInHandler(web.handler.JsonHandler):
@@ -113,6 +73,7 @@ class SignInHandler(web.handler.JsonHandler):
             })
 
         self.write_json(out.to_dict())
+
 
 @web.route(u"/api/utilisateurs/deconnexion")
 class SignOutHandler(web.handler.JsonHandler):
@@ -161,11 +122,11 @@ class AutorisationsHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-    def _get_db_user(self, logon: str) -> Optional[asgard_db.Utilisateur]:
+    def _get_db_user(self, logon: str) -> Optional[saga_db.Utilisateur]:
         """Get a user from the DB by logon."""
         if self.db_session:
-            return self.db_session.query(asgard_db.Utilisateur) \
-                .filter(asgard_db.Utilisateur.logon == logon) \
+            return self.db_session.query(saga_db.Utilisateur) \
+                .filter(saga_db.Utilisateur.logon == logon) \
                 .first()
         return None
 
@@ -174,9 +135,9 @@ class AutorisationsHandler(web.handler.JsonHandler):
         roles: List[AutorisationsHandler.Role] = []
 
         if self.db_session:
-            qry = self.db_session.query(asgard_db.Role) \
-                .join(asgard_db.UtilisateurRole) \
-                .filter(asgard_db.UtilisateurRole.id_users == user_id)
+            qry = self.db_session.query(saga_db.Role) \
+                .join(saga_db.UtilisateurRole) \
+                .filter(saga_db.UtilisateurRole.id_users == user_id)
 
             for role in qry.all():
                 roles.append({
@@ -194,9 +155,9 @@ class AutorisationsHandler(web.handler.JsonHandler):
         autorisations: List[AutorisationsHandler.Autorisation] = []
 
         if self.db_session:
-            qry = self.db_session.query(asgard_db.Autorisation) \
-                .join(asgard_db.RoleAutorisation) \
-                .filter(asgard_db.RoleAutorisation.id_role == id_role)
+            qry = self.db_session.query(saga_db.Autorisation) \
+                .join(saga_db.RoleAutorisation) \
+                .filter(saga_db.RoleAutorisation.id_role == id_role)
 
             for aut in qry.all():
                 autorisations.append({
@@ -205,55 +166,6 @@ class AutorisationsHandler(web.handler.JsonHandler):
                 })
 
         return sorted(autorisations, key=lambda x: x[u"nom"])
-
-@web.route(u"/api/utilisateurs/:user_logon/autorisationsgammes")
-class AutorisationsGammesHandler(web.handler.JsonHandler):
-
-    class Gamme(TypedDict):
-        gamme: str
-        cptgrgamme:str
-        description: str
-
-    def get(self, logon: str) -> None:
-        """Get a list of the authorizations of a user."""
-
-        db_user = self._get_db_user(logon)
-
-        out = web.handler.JsonResponse[List[AutorisationsGammesHandler.Gamme]]()
-        out.ensure(db_user, u"user", u"L'utilisateur {} est introuvable".format(logon))
-
-        if out.ok() and db_user:
-            out.set_body(self._get_autorisationsGammes(db_user.id))
-
-        self.write_json(out.to_dict())
-
-    def _get_db_user(self, logon: str) -> Optional[asgard_db.Utilisateur]:
-        """Get a user from the DB by logon."""
-        if self.db_session:
-            return self.db_session.query(asgard_db.Utilisateur) \
-                .filter(asgard_db.Utilisateur.logon == logon) \
-                .first()
-        return None
-
-    def _get_autorisationsGammes(self, user_id: int) -> List['AutorisationsGammesHandler.Gamme']:
-        """Get the routing authorizations for a user (by ID)."""
-
-        gammes: List[AutorisationsGammesHandler.Gamme] = []
-
-        if self.db_session:
-            qry = self.db_session.query(asgard_db.RoutingGTI) \
-                .join(asgard_db.UsersRoutingGTI) \
-                .filter(asgard_db.UsersRoutingGTI.id_users == user_id)
-            
-            for aut in qry.all():
-                gammes.append({
-                    "id": aut.id,
-                    "gamme": aut.Gamme,
-                    "cptgrgamme": aut.CptGrpGamme,
-                    "description": aut.DescriptionSAP,
-                })
-
-        return sorted(gammes, key=lambda x: x[u"gamme"])
 
 @web.route(u"/api/utilisateurs/creer")
 class CreateHandler(web.handler.JsonHandler):
@@ -288,7 +200,7 @@ class CreateHandler(web.handler.JsonHandler):
             out.ensure(self.get_role(id_role), u"roles", u"Le rôle n'existe pas.")
 
         if out.ok() and self.db_session:
-            db_user = asgard_db.Utilisateur()
+            db_user = saga_db.Utilisateur()
             db_user.logon = request_logon.upper()
             db_user.prenom = request_first_name
             db_user.nom = request_family_name.upper()
@@ -310,10 +222,10 @@ class CreateHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-    def add_role_to_user(self, db_user: asgard_db.Utilisateur, id_role: int) -> None:
+    def add_role_to_user(self, db_user: saga_db.Utilisateur, id_role: int) -> None:
         #FIXME Should fail if no db_session
         if self.db_session:
-            user_role = asgard_db.UtilisateurRole()
+            user_role = saga_db.UtilisateurRole()
             user_role.id_users = db_user.id
             user_role.id_role = id_role
             self.db_session.add(user_role)
@@ -323,12 +235,12 @@ class CreateHandler(web.handler.JsonHandler):
         mail_body = u"""
             <p class="subtle">Bonjour {name},</p>
             <br />
-            <p><a href="{activation_url}"><strong>Activez votre compte utilisateur ASGARD</strong></a></p>
+            <p><a href="{activation_url}"><strong>Activez votre compte utilisateur SAGA</strong></a></p>
             <br />
             <p>Bonne utilisation !</p>
             <br />
             <p class="subtle">Cordialement,</p>
-            <p class="subtle">L'équipe ASGARD.<p>
+            <p class="subtle">L'équipe SAGA.<p>
             <br />
             <p class="subtle"><small>P.-S. Vous recevez cet e-mail suite à la création de votre compte par {creator_name} {creator_family_name}.</small></p>
         """.format(
@@ -341,21 +253,21 @@ class CreateHandler(web.handler.JsonHandler):
         mail = sendmail.Mail()
         mail.to = [db_user.logon]
         mail.cc = [u"jeremy.j.baucherel.external@airbus.com"]
-        mail.subject = u"[ASGARD] Activation compte utilisateur"
+        mail.subject = u"[SAGA] Activation compte utilisateur"
         mail.body = u"".join([line.strip() for line in mail_body.splitlines()])
         mail.sendHtml()
 
-    def get_user_by_logon(self, logon: str) -> Optional[asgard_db.Utilisateur]:
+    def get_user_by_logon(self, logon: str) -> Optional[saga_db.Utilisateur]:
         if self.db_session:
             logon = logon.upper()
-            return self.db_session.query(asgard_db.Utilisateur) \
-                .filter(asgard_db.Utilisateur.logon == logon) \
+            return self.db_session.query(saga_db.Utilisateur) \
+                .filter(saga_db.Utilisateur.logon == logon) \
                 .first()
         return None
 
-    def get_role(self, id_role: int) -> Optional[asgard_db.Role]:
+    def get_role(self, id_role: int) -> Optional[saga_db.Role]:
         if self.db_session:
-            return self.db_session.query(asgard_db.Role).get(id_role)
+            return self.db_session.query(saga_db.Role).get(id_role)
         return None
 
 @web.route(u"/api/utilisateurs/:user_logon/modifier")
@@ -370,12 +282,11 @@ class UpdateHandler(web.handler.JsonHandler):
         request_first_name = params.get(u"name", u"")
         request_family_name = params.get(u"familyName", u"")
         request_roles = params.get(u"roles", [])
-        request_gammes = params.get(u"gammes", [])
         db_user = self.get_user_by_logon(logon)
 
         response = web.handler.JsonResponse[None]()
         response.ensure_user_is_logged_in(self.user)
-        response.ensure_user_has_any_authorization(self.user, [u"UTILISATEUR:EDIT",u"UTILISATEUR_GAMME:EDIT"])
+        response.ensure_user_has_any_authorization(self.user, [u"UTILISATEUR:EDIT"])
         response.ensure(request_logon == logon, u"logon", u"Logon incohérent")
         response.ensure(request_logon and len(request_logon) >= 5, u"logon", u"Le logon doit faire 5 caractères minimum ({} actuellement)".format(len(request_logon)))
         response.ensure(request_logon and len(request_logon) <= 15, u"logon", u"Le logon doit faire 15 caractères maximum ({} actuellement)".format(len(request_logon)))
@@ -388,11 +299,6 @@ class UpdateHandler(web.handler.JsonHandler):
             for id_role in request_roles:
                 response.ensure(self.get_role(id_role), u"roles", u"Le rôle n'existe pas.")
         
-        # Vérifie que les gammes existent dans la base
-        if request_gammes:
-            for id_gamme in request_gammes:
-                response.ensure(self.get_gamme(id_gamme), u"gammes", u"La gamme n'existe pas.")
-
         if response.ok() and db_user and self.db_session:
             db_user.logon = request_logon.upper()
             db_user.prenom = request_first_name
@@ -409,79 +315,44 @@ class UpdateHandler(web.handler.JsonHandler):
                     self.add_role_to_user(db_user, id_role)
             self.db_session.commit()
 
-            # Remove old gammes
-            for db_gamme in self.get_user_gammes(db_user.id):
-                if not db_gamme.id_routingGTI in request_gammes:
-                    self.db_session.delete(db_gamme)
-            if request_gammes:
-                # Add new gammes
-                for id_gamme in request_gammes:
-                    self.add_gamme_to_user(db_user, id_gamme)
-            self.db_session.commit()
 
         self.write_json(response.to_dict())
 
-    def add_role_to_user(self, db_user: asgard_db.Utilisateur, id_role: int) -> None:
+    def add_role_to_user(self, db_user: saga_db.Utilisateur, id_role: int) -> None:
         if self.db_session and not self.does_user_have_role(db_user.id, id_role):
-            user_role = asgard_db.UtilisateurRole()
+            user_role = saga_db.UtilisateurRole()
             user_role.id_users = db_user.id
             user_role.id_role = id_role
             self.db_session.add(user_role)
 
-    def add_gamme_to_user(self, db_user: asgard_db.Utilisateur, id_gamme: int) -> None:
-        if self.db_session and not self.does_user_have_gamme(db_user.id, id_gamme):
-            user_gamme = asgard_db.UsersRoutingGTI()
-            user_gamme.id_users = db_user.id
-            user_gamme.id_routingGTI = id_gamme
-            self.db_session.add(user_gamme)
-
-    def get_user_by_logon(self, logon: str) -> Optional[asgard_db.Utilisateur]:
+    def get_user_by_logon(self, logon: str) -> Optional[saga_db.Utilisateur]:
         if self.db_session:
             logon = logon.upper()
-            return self.db_session.query(asgard_db.Utilisateur) \
-                .filter(asgard_db.Utilisateur.logon == logon) \
+            return self.db_session.query(saga_db.Utilisateur) \
+                .filter(saga_db.Utilisateur.logon == logon) \
                 .first()
         return None
 
-    def get_user_roles(self, user_id: int) -> List[asgard_db.UtilisateurRole]:
+    def get_user_roles(self, user_id: int) -> List[saga_db.UtilisateurRole]:
         if self.db_session:
-            return self.db_session.query(asgard_db.UtilisateurRole) \
-                .filter(asgard_db.UtilisateurRole.id_users == user_id) \
+            return self.db_session.query(saga_db.UtilisateurRole) \
+                .filter(saga_db.UtilisateurRole.id_users == user_id) \
                 .all()
         return []
 
-    def get_user_gammes(self, user_id: int) -> List[asgard_db.UsersRoutingGTI]:
+    def get_role(self, id_role: int) -> Optional[saga_db.Role]:
         if self.db_session:
-            return self.db_session.query(asgard_db.UsersRoutingGTI) \
-                .filter(asgard_db.UsersRoutingGTI.id_users == user_id) \
-                .all()
-        return []
-
-    def get_role(self, id_role: int) -> Optional[asgard_db.Role]:
-        if self.db_session:
-            return self.db_session.query(asgard_db.Role).get(id_role)
-        return None
-
-    def get_gamme(self, id_gamme: int) -> Optional[asgard_db.RoutingGTI]:
-        if self.db_session:
-            return self.db_session.query(asgard_db.RoutingGTI).get(id_gamme)
+            return self.db_session.query(saga_db.Role).get(id_role)
         return None
 
     def does_user_have_role(self, user_id: int, id_role: int) -> bool:
         if self.db_session:
-            return self.db_session.query(asgard_db.UtilisateurRole) \
-                .filter(asgard_db.UtilisateurRole.id_users == user_id) \
-                .filter(asgard_db.UtilisateurRole.id_role == id_role) \
+            return self.db_session.query(saga_db.UtilisateurRole) \
+                .filter(saga_db.UtilisateurRole.id_users == user_id) \
+                .filter(saga_db.UtilisateurRole.id_role == id_role) \
                 .first() != None
         return False
 
-    def does_user_have_gamme(self, user_id: int, id_gamme: int) -> bool:
-        if self.db_session:
-            return self.db_session.query(asgard_db.UsersRoutingGTI) \
-                .filter(asgard_db.UsersRoutingGTI.id_users == user_id) \
-                .filter(asgard_db.UsersRoutingGTI.id_routingGTI == id_gamme) \
-                .first() != None
-        return False
 
 @web.route(u"/api/utilisateurs/:user_logon/initialiser")
 class InitHandler(web.handler.JsonHandler):
@@ -525,28 +396,28 @@ class InitHandler(web.handler.JsonHandler):
                 mail_body = u"""
                 <p class="subtle">Bonjour {name},</p>
                 <br />
-                <p>Nous vous souhaitons la bienvenue dans <a href="{host}">Asgard</a> !</p>
+                <p>Nous vous souhaitons la bienvenue dans <a href="{host}">SAGA</a> !</p>
                 <br />
-                <p><strong>Asgard, qu'est-ce c'est ?</strong></p>
-                <p>Asgard est l'application officielle pour les Essais (ZZMI5) de Saint-Nazaire. Elle permet de générer les GTI à partir des spécifications données par les GTR (BE). <br />
+                <p><strong>SAGA, qu'est-ce c'est ?</strong></p>
+                <p>SAGA est l'application officielle pour les Essais (ZZMI5) de Saint-Nazaire. Elle permet de générer les GTI à partir des spécifications données par les GTR (BE). <br />
                 Un paramétrage permet une gestion de configuration simplifiée et une mise à jour des effectivitées dans SAP automatique. <br />
-                Asgard permet une liaison avec des applications tiers tel ques TEDS, ESN-BMS ou C@pture.</p>
+                SAGA permet une liaison avec des applications tiers tel ques TEDS, ESN-BMS ou C@pture.</p>
                 <br />
-                <p><strong>Comment ouvrir Asgard ?</strong></p>
-                <p>Asgard est une application Web, il vous suffit donc d'ouvrir l'URL suivante avec Chrome : <a href="{host}">{host}</a></p>
+                <p><strong>Comment ouvrir SAGA ?</strong></p>
+                <p>SAGA est une application Web, il vous suffit donc d'ouvrir l'URL suivante avec Chrome : <a href="{host}">{host}</a></p>
                 <br />
                 Pour modifier vos droits d'accès, n'hésitez pas à contacter le support (en copie de ce mail). 
                 <br />
                 <p>Bonne utilisation !</p>
                 <br />
                 <p class="subtle">Cordialement,</p>
-                <p class="subtle">L'équipe Asgard.</p>
+                <p class="subtle">L'équipe SAGA.</p>
                 """.format(name=user.prenom, host=config.FRONTEND_URL)
 
                 mail = sendmail.Mail()
                 mail.to = [user_logon]
                 mail.cc = config.ADMIN_CONTACTS
-                mail.subject = u"[Asgard] Bienvenue {} !".format(user.prenom)
+                mail.subject = u"[SAGA] Bienvenue {} !".format(user.prenom)
                 mail.body = u"\n".join([line.strip() for line in mail_body.splitlines()])
                 mail.sendHtml()
         else:
@@ -554,16 +425,16 @@ class InitHandler(web.handler.JsonHandler):
 
         self.write_json(response.to_dict())
 
-    def get_user(self, logon: str) -> Optional[asgard_db.Utilisateur]:
+    def get_user(self, logon: str) -> Optional[saga_db.Utilisateur]:
         if self.db_session:
-            return self.db_session.query(asgard_db.Utilisateur) \
-                .filter(asgard_db.Utilisateur.logon == logon) \
+            return self.db_session.query(saga_db.Utilisateur) \
+                .filter(saga_db.Utilisateur.logon == logon) \
                 .first()
         return None
 
     def hash_password(self, raw_password: str) -> Tuple[str, str]:
         salt = self.get_random_string(40)
-        pwd = u"{}:{}:ASGARD".format(salt, raw_password)
+        pwd = u"{}:{}:SAGA".format(salt, raw_password)
 
         pwd_hash = hashlib.sha512()
         pwd_hash.update(pwd.encode("utf-8"))
@@ -601,10 +472,10 @@ class MeRgpdHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-    def get_user(self, logon: str) -> Optional[asgard_db.Utilisateur]:
+    def get_user(self, logon: str) -> Optional[saga_db.Utilisateur]:
         if self.db_session:
-            return self.db_session.query(asgard_db.Utilisateur) \
-                .filter(asgard_db.Utilisateur.logon == logon) \
+            return self.db_session.query(saga_db.Utilisateur) \
+                .filter(saga_db.Utilisateur.logon == logon) \
                 .first()
         return None
 
@@ -645,8 +516,8 @@ class ResetPasswordHandler(web.handler.JsonHandler):
 
     def _get_user(self, logon, password_token):
         if self.db_session:
-            return self.db_session.query(asgard_db.Utilisateur) \
-                .filter(asgard_db.Utilisateur.logon == logon, asgard_db.Utilisateur.mdp_token.like(password_token)) \
+            return self.db_session.query(saga_db.Utilisateur) \
+                .filter(saga_db.Utilisateur.logon == logon, saga_db.Utilisateur.mdp_token.like(password_token)) \
                 .first()
         return None
 
@@ -667,7 +538,7 @@ class RequestPasswordResetHandler(web.handler.JsonHandler):
                     mdp = db_user.mdp.encode('utf8')
 
                 token_hash = hashlib.sha512()
-                token_hash.update(db_user.logon.encode('utf8') + b":" + mdp + b":ASGARD")
+                token_hash.update(db_user.logon.encode('utf8') + b":" + mdp + b":SAGA")
 
                 hashed_token = str(token_hash.hexdigest())
                 db_user.mdp_token = hashed_token
@@ -680,31 +551,31 @@ class RequestPasswordResetHandler(web.handler.JsonHandler):
                 <br />
                 <p>A votre demande, vous trouverez ci-dessous le lien pour réinitialiser votre mot de passe.</p>
                 <br />
-                <p><a href="{url}"><strong>Réinitialisez votre mot de passe Asgard</strong></a></p>
+                <p><a href="{url}"><strong>Réinitialisez votre mot de passe SAGA</strong></a></p>
                 <br />
                 <p>Si vous n'avez pas fait de demande de réinitialisation de votre mot de passe, veuillez ignorer ce message.</p>
                 <br />
                 <p>Cordialement,</p>
-                <p>L'équipe Asgard.</p>
+                <p>L'équipe SAGA.</p>
                 """.format(name=db_user.prenom, url=url)
 
                 mail = sendmail.Mail()
                 mail.to = [db_user.logon]
                 mail.cci = config.ADMIN_CONTACTS
-                mail.subject = u"[Asgard] Réinitialisation de votre mot de passe"
+                mail.subject = u"[SAGA] Réinitialisation de votre mot de passe"
                 mail.body = u"\n".join([line.strip() for line in mail_body.splitlines()])
                 mail.sendHtml()
             else:
-                out.add_error(u"logon", u"Ce logon n'a pas encore de compte Asgard.")
+                out.add_error(u"logon", u"Ce logon n'a pas encore de compte SAGA.")
         else:
             out.add_error(u"logon", u"Veuillez renseigner votre logon")
 
         self.write_json(out.to_dict())
 
-    def get_user(self, logon: str) -> Optional[asgard_db.Utilisateur]:
+    def get_user(self, logon: str) -> Optional[saga_db.Utilisateur]:
         if self.db_session:
-            return self.db_session.query(asgard_db.Utilisateur) \
-                .filter(asgard_db.Utilisateur.logon == logon) \
+            return self.db_session.query(saga_db.Utilisateur) \
+                .filter(saga_db.Utilisateur.logon == logon) \
                 .first()
         return None
 
@@ -731,16 +602,15 @@ class UsersHandler(web.handler.JsonHandler):
                 u"logon": db_user.logon,
                 u"autorisations": self._get_user_authorisations(db_user.id),
                 u"roles": self._get_user_roles(db_user.id),
-                u"gammes": self._get_user_gammes(db_user.id),
                 u"url": u"/utilisateurs/{}".format(db_user.logon),
             }
             users.append(user)
         out.set_body(users)
         self.write_json(out.to_dict())
 
-    def _get_db_users(self) -> List[asgard_db.Utilisateur]:
+    def _get_db_users(self) -> List[saga_db.Utilisateur]:
         if self.db_session:
-            return self.db_session.query(asgard_db.Utilisateur)
+            return self.db_session.query(saga_db.Utilisateur)
         return []
 
 @web.route(u"/api/utilisateurs/:user_logon")
@@ -767,15 +637,14 @@ class UserHandler(web.handler.JsonHandler):
                 u"active": (db_user.mdp != u"" and not db_user.mdp is None),
                 u"autorisations": self._get_user_authorisations(db_user.id),
                 u"roles": self._get_user_roles(db_user.id),
-                u"gammes": self._get_user_gammes(db_user.id),
             })
 
         self.write_json(out.to_dict())
 
-    def _get_db_user(self, logon: str, activation_token: str) -> Optional[asgard_db.Utilisateur]:
+    def _get_db_user(self, logon: str, activation_token: str) -> Optional[saga_db.Utilisateur]:
         if self.db_session:
-            qry = self.db_session.query(asgard_db.Utilisateur).filter(asgard_db.Utilisateur.logon == logon)
+            qry = self.db_session.query(saga_db.Utilisateur).filter(saga_db.Utilisateur.logon == logon)
             if activation_token:
-                qry = qry.filter(asgard_db.Utilisateur.session_id.like(activation_token))
+                qry = qry.filter(saga_db.Utilisateur.session_id.like(activation_token))
             return qry.first()
         return None
