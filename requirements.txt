@@ -1,0 +1,7 @@
+pyodbc
+tornado==5.1.1
+gunicorn==19.9.0
+git+https://NG90F57:f7481add54eb47982a76802de975b08f1fe79b4f@gheprivate.intra.corp/QDNP/sy_db#egg=sy-db
+git+https://NG90F57:f7481add54eb47982a76802de975b08f1fe79b4f@gheprivate.intra.corp/QDNP/apu#egg=apu
+git+https://NG90F57:f7481add54eb47982a76802de975b08f1fe79b4f@gheprivate.intra.corp/QDNP/sendmail#egg=sendmail
+
