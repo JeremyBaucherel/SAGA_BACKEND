@@ -71,3 +71,185 @@ class DashboardHandler(web.handler.JsonHandler):
         self.write_json(out.to_dict())
 
 
+@web.route(u"/api/book/dashboard/edit")
+class DashboardEditHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        saveRows = params.get("saveRows", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bibliotheque()
+            print("Add a coder...")
+
+
+
+
+@web.route(u"/api/book/dashboard/add")
+class DashboardAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bibliotheque()
+            print("Edit a coder...")
+
+
+
+
+@web.route(u"/api/book/dashboard/del")
+class DashboardDelHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        delRow = params.get("delRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            # Sélection de la ligne ID à supprimer
+            param = self.db_session.query(saga_db.Bibliotheque()).filter_by(id=delRow).first()
+
+            # Suppression de la ligne
+            self.db_session.delete(param)
+
+            # Confirmer la suppression
+            self.db_session.commit()
+
+
+@web.route("/api/book/liste/type")
+class TypeHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Type) \
+                .order_by(saga_db.Type.name_type)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "text": param.name_type,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/book/liste/saga")
+class SagaHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Saga) \
+                .order_by(saga_db.Saga.name_saga)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "text": param.name_saga,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/book/liste/publishing")
+class PublishingHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.MaisonEdition) \
+                .order_by(saga_db.MaisonEdition.name_book_publishing)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "text": param.name_book_publishing,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/book/liste/owner")
+class OwnerHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Proprietaire) \
+                .order_by(saga_db.Proprietaire.name_owner)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "text": param.name_owner,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/book/liste/location")
+class LocationHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Emplacement) \
+                .order_by(saga_db.Emplacement.name_location)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "text": param.name_location,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
