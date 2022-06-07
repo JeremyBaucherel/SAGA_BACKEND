@@ -22,7 +22,7 @@ import web.handler
 import web.handler.generic
 import web.handler.user
 import web.handler.metallisation
-import web.handler.optique
+import web.handler.book
 import web.handler.parametre
 import config
 
@@ -37,7 +37,7 @@ DB_ENGINE = sqlalchemy.create_engine(DSN, poolclass=sqlalchemy.pool.QueuePool)
 
 #DB_ENGINE = sqlalchemy.create_engine('mssql://localhost\\SQLEXPRESS/' + config.DB_NAME + '?trusted_connection=yes&driver=ODBC+Driver+13+for+SQL+Server') 
 
-
+"""
 try:
     session = sqlalchemy.orm.sessionmaker(bind=DB_ENGINE)()
     for row in session.execute(u"SELECT * FROM users"):
@@ -45,7 +45,7 @@ try:
     print(" -> OK")
 except Exception as e:
     print("DB CON FAILED!", e)
-
+"""
 
 web_app = tornado.web.Application(
     web.ROUTES + [(r'/.*$', web.handler.JsonHandler)],

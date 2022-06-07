@@ -197,139 +197,137 @@ class VersionHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-"""
-@web.route("/api/param/others")
-class ParamOtherHandler(web.handler.JsonHandler):
-
+@web.route("/api/param/saga")
+class SagaHandler(web.handler.JsonHandler):
     def post(self):
 
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        process = params.get("process", "")
-        authorization = params.get("authorization", "")
-
-        qry = self.db_session.query(saga_db.ParamOther) \
-                .filter(saga_db.ParamOther.processName == process) \
-                .order_by(saga_db.ParamOther.categorie, saga_db.ParamOther.nom)
-
         out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
 
-        if out.ok() and user_id:
+        if out.ok():
 
-            ParamOthers=[]
+            qry = self.db_session.query(saga_db.Saga) \
+                .order_by(saga_db.Saga.name_saga)
+
+            tabParam=[]
             for param in qry.all():  
-
-                ParamOthers.append({
+                tabParam.append({
                     "id": param.id,
-                    "processName": param.processName,
-                    "categorie": param.categorie,
-                    "nom": param.nom,
-                    "valeur": param.valeur,
-                    "description": param.description,
-                    "actif": param.actif,
+                    "name_saga": param.name_saga,
                 })
 
-            out.set_body(ParamOthers)
+            out.set_body(tabParam)
 
         self.write_json(out.to_dict())
 
-@web.route("/api/param/gti")
-class ParamGtiHandler(web.handler.JsonHandler):
-
+@web.route("/api/param/auteur")
+class AuteurHandler(web.handler.JsonHandler):
     def post(self):
 
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        process = params.get("process", "")
-
-        if process == "METALLISATION":
-            authorization = 'METAL:DISPLAY'
-        elif process == "FIBREOPTIQUE":
-            authorization = 'OPTIQUE:DISPLAY'
-
         out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
 
-        if out.ok() and user_id:
+        if out.ok():
 
-            qry = self.db_session.query(saga_db.ParamGTI) \
-                .join(saga_db.RoutingGTI) \
-                .join(saga_db.UsersRoutingGTI) \
-                .join(saga_db.ProcessRoutingGTI) \
-                .filter(saga_db.ProcessRoutingGTI.processName == process) \
-                .filter(saga_db.ProcessRoutingGTI.id_statut == 3) \
-                .filter(saga_db.UsersRoutingGTI.id_users == user_id) \
-                .order_by(saga_db.ParamGTI.Gamme)
-    
-            ParamGti=[]
-            for gti in qry.all():  
-                ParamGti.append({
-                    "id": gti.id,
-                    "GTI": gti.GTI,
-                    "DocType": gti.DocType,
-                    "Part": gti.Part,
-                    "Gamme": gti.Gamme,
-                    "cptGrGam": gti.cptGrGam,
-                    "Operation": gti.Operation,
-                    "creationStatut": gti.creationStatut,
-                    "nbDigitMsnSap": gti.nbDigitMsnSap,
-                    "groupeGestionnaire": gti.groupeGestionnaire,
-                    "DesignationsCSV": gti.DesignationsCSV,
-                    "Section": gti.Section,
-                    "processName": gti.processName,
-                    "Libelle": gti.Libelle,
-                    "NumDocMsn": gti.NumDocMsn,
-                    "pvnameCSV": gti.pvnameCSV,
-                    "pvnamePDF": gti.pvnamePDF,
-                    "folderpv": gti.folderpv,
-                    "Zone": gti.Zone,
-                    "Langue": gti.Langue,
-                    "LongTitle": gti.LongTitle,
-                    "ShortTitle": gti.ShortTitle,
+            qry = self.db_session.query(saga_db.Auteur) \
+                .order_by(saga_db.Auteur.name_author)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_author": param.name_author,
                 })
 
-            out.set_body(ParamGti)
+            out.set_body(tabParam)
 
         self.write_json(out.to_dict())
 
-@web.route("/api/param/ParamOther/add")
-class ParamOtherAddHandler(web.handler.JsonHandler):
-
+@web.route("/api/param/type")
+class TypeHandler(web.handler.JsonHandler):
     def post(self):
 
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        process = params.get("process", "")
-        authorization = params.get("authorization", "")
-        addRow = params.get("addRow", "")
-
         out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
 
-        if out.ok() and user_id:
+        if out.ok():
 
-            db_param = saga_db.ParamOther()
-            db_param.processName = process
-            db_param.categorie = addRow["categorie"] if "categorie" in addRow else ""
-            db_param.nom = addRow["nom"] if "nom" in addRow else ""
-            db_param.valeur = addRow["valeur"] if "valeur" in addRow else ""
-            db_param.description = addRow["description"] if "description" in addRow else ""
-            db_param.actif = addRow["actif"] if "actif" in addRow else 0
+            qry = self.db_session.query(saga_db.Type) \
+                .order_by(saga_db.Type.name_type)
 
-            self.db_session.add(db_param)
-            self.db_session.commit()
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_type": param.name_type,
+                })
 
-            out.set_body("Nouvelle ligne ajoutée dans la table ParamOther")
+            out.set_body(tabParam)
 
         self.write_json(out.to_dict())
-"""
+
+@web.route("/api/param/bookpublishing")
+class BookPublishingHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.MaisonEdition) \
+                .order_by(saga_db.MaisonEdition.name_book_publishing)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_book_publishing": param.name_book_publishing,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/param/owner")
+class OwnerHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Proprietaire) \
+                .order_by(saga_db.Proprietaire.name_owner)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_owner": param.name_owner,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/param/location")
+class LocationHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Emplacement) \
+                .order_by(saga_db.Emplacement.name_location)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_location": param.name_location,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
 
 @web.route("/api/param/Version/add")
 class VersionAddHandler(web.handler.JsonHandler):
@@ -361,16 +359,14 @@ class VersionAddHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-"""
-@web.route("/api/param/ParamGTI/add")
-class ParamGTIAddHandler(web.handler.JsonHandler):
+@web.route("/api/param/saga/add")
+class SagaAddHandler(web.handler.JsonHandler):
 
     def post(self):
 
         user_id = self.user["id"]
 
         params = self.parse_json_body()
-        process = params.get("process", "")
         authorization = params.get("authorization", "")
         addRow = params.get("addRow", "")
 
@@ -380,53 +376,151 @@ class ParamGTIAddHandler(web.handler.JsonHandler):
 
         if out.ok() and user_id:
 
-            # Recherche de l'id_routingGTI correspond dans la table RoutingGTI
-            rech_id_routingGTI = self._get_id_routingGTI(self.db_session, addRow["Gamme"], addRow["cptGrGam"])
-            if not rech_id_routingGTI:
-                out.add_error(u"ParamGTI", u"Impossible d'ajouter une nouvelle ligne dans la table. Vous n'avez pas entré un couple Gamme / Compteur Groupe de Gamme qui corresponde au Process: " + process)
-            else:
-                id_routingGTI = rech_id_routingGTI.id
+            db_param = saga_db.Saga()
+            db_param.name_saga = addRow["name_saga"] if "name_saga" in addRow else ""
 
-                db_param = saga_db.ParamGTI()
-                db_param.id_routingGTI = id_routingGTI
-                db_param.GTI = addRow["GTI"] if "GTI" in addRow else ""
-                db_param.DocType = addRow["DocType"] if "DocType" in addRow else ""
-                db_param.Part = addRow["Part"] if "Part" in addRow else ""
-                db_param.Gamme = addRow["Gamme"] if "Gamme" in addRow else ""
-                db_param.cptGrGam = addRow["cptGrGam"] if "cptGrGam" in addRow else ""
-                db_param.Operation = addRow["Operation"] if "Operation" in addRow else ""
-                db_param.creationStatut = addRow["creationStatut"] if "creationStatut" in addRow else 0
-                db_param.nbDigitMsnSap = addRow["nbDigitMsnSap"] if "nbDigitMsnSap" in addRow else ""
-                db_param.groupeGestionnaire = addRow["groupeGestionnaire"] if "groupeGestionnaire" in addRow else ""
-                db_param.DesignationsCSV = addRow["DesignationsCSV"] if "DesignationsCSV" in addRow else ""
-                db_param.Section = addRow["Section"] if "Section" in addRow else ""
-                db_param.processName = process
-                db_param.Libelle = addRow["Libelle"] if "Libelle" in addRow else ""
-                db_param.NumDocMsn = addRow["NumDocMsn"] if "NumDocMsn" in addRow else ""
-                db_param.pvnameCSV = addRow["pvnameCSV"] if "pvnameCSV" in addRow else ""
-                db_param.pvnamePDF = addRow["pvnamePDF"] if "pvnamePDF" in addRow else ""
-                db_param.folderpv = addRow["folderpv"] if "folderpv" in addRow else ""
-                db_param.Zone = addRow["Zone"] if "Zone" in addRow else ""   
-                db_param.Langue = addRow["Langue"] if "Langue" in addRow else ""
-                db_param.LongTitle = addRow["LongTitle"] if "LongTitle" in addRow else ""
-                db_param.ShortTitle = addRow["ShortTitle"] if "ShortTitle" in addRow else ""
+            self.db_session.add(db_param)
+            self.db_session.commit()
 
-                self.db_session.add(db_param)
-                self.db_session.commit()
-
-                out.set_body("Nouvelle ligne ajoutée dans la table ParamGTI")
+            out.set_body("Nouvelle ligne ajoutée dans la table Saga")
 
         self.write_json(out.to_dict())
 
+@web.route("/api/param/auteur/add")
+class AuteurAddHandler(web.handler.JsonHandler):
 
-    def _get_id_routingGTI(self, db_session, gamme, cptGrGam) -> Optional[saga_db.RoutingGTI]:
-        if db_session:
-            query = db_session.query(saga_db.RoutingGTI) \
-                .filter(saga_db.RoutingGTI.Gamme == gamme) \
-                .filter(saga_db.RoutingGTI.CptGrpGamme == cptGrGam)
-            return query.first()
-        return []
-"""
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Auteur()
+            db_param.name_author = addRow["name_author"] if "name_author" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Auteur")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/param/type/add")
+class TypeAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Type()
+            db_param.name_type = addRow["name_type"] if "name_type" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Type")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/param/bookpublishing/add")
+class BookPublishingAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.MaisonEdition()
+            db_param.name_book_publishing = addRow["name_book_publishing"] if "name_book_publishing" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table book_publishing")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/param/owner/add")
+class OwnerAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Proprietaire()
+            db_param.name_owner = addRow["name_owner"] if "name_owner" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table owner")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/param/location/add")
+class LocationAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Emplacement()
+            db_param.name_location = addRow["name_location"] if "name_location" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table location")
+
+        self.write_json(out.to_dict())
+
 @web.route("/api/param/Role/add")
 class RoleAddHandler(web.handler.JsonHandler):
 
@@ -485,7 +579,6 @@ class AutorisationAddHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-"""
 @web.route("/api/param/:tableParam/edit")
 class ParamEditHandler(web.handler.JsonHandler):
 
@@ -497,26 +590,24 @@ class ParamEditHandler(web.handler.JsonHandler):
         authorization = params.get("authorization", "")
         saveRows = params.get("saveRows", "")
 
-        if tableParam == "ParamPFE":
-            tableParamObj = saga_db.ParamPFE
-        elif tableParam == "ParamGTI":
-            tableParamObj = saga_db.ParamGTI
-        elif tableParam == "ParamMetalFullConf_A320":
-            tableParamObj = saga_db.ParamMetalFullConf_A320
-        elif tableParam == "version":
-            tableParamObj = saga_db.Version
-        elif tableParam == "ParamTrag_TypePin":
-            tableParamObj = saga_db.ParamTrag_TypePin
-        elif tableParam == "ParamTrag_TypeCable":
-            tableParamObj = saga_db.ParamTrag_TypeCable
-        elif tableParam == "ParamOther":
-            tableParamObj = saga_db.ParamOther
-        elif tableParam == "Role":
+        if tableParam == "Role":
             tableParamObj = saga_db.Role       
         elif tableParam == "Autorisation":
-            tableParamObj = saga_db.Autorisation       
-        elif tableParam == "RoutingGTI":
-            tableParamObj = saga_db.RoutingGTI
+            tableParamObj = saga_db.Autorisation   
+        elif tableParam == "saga":
+            tableParamObj = saga_db.Saga
+        elif tableParam == "version":
+            tableParamObj = saga_db.Version           
+        elif tableParam == "auteur":
+            tableParamObj = saga_db.Auteur  
+        elif tableParam == "type":
+            tableParamObj = saga_db.Type  
+        elif tableParam == "bookpublishing":
+            tableParamObj = saga_db.MaisonEdition
+        elif tableParam == "owner":
+            tableParamObj = saga_db.Proprietaire
+        elif tableParam == "location":
+            tableParamObj = saga_db.Emplacement
 
         out = web.handler.JsonResponse()
         out.ensure_user_is_logged_in(self.user)
@@ -529,13 +620,6 @@ class ParamEditHandler(web.handler.JsonHandler):
                 columnName = v['columnName']
                 value = v['value']
                 colId = "id"
-
-                if tableParam == "RoutingGTI": 
-                    if columnName == "statut" or columnName == "processName":
-                        tableParamObj = saga_db.ProcessRoutingGTI
-                        colId = "id_routingGTI"
-                    if columnName == "statut": 
-                        columnName = "id_statut"
 
                 param = self.db_session.query(tableParamObj).get({colId:rowId})
                 setattr(param, columnName, value)
@@ -556,26 +640,24 @@ class ParamDelHandler(web.handler.JsonHandler):
         authorization = params.get("authorization", "")
         rowId = params.get("RowsId", "")
 
-        if tableParam == "ParamPFE":
-            tableParamObj = saga_db.ParamPFE
-        elif tableParam == "ParamGTI":
-            tableParamObj = saga_db.ParamGTI
-        elif tableParam == "ParamMetalFullConf_A320":
-            tableParamObj = saga_db.ParamMetalFullConf_A320
-        elif tableParam == "version":
-            tableParamObj = saga_db.Version
-        elif tableParam == "ParamTrag_TypePin":
-            tableParamObj = saga_db.ParamTrag_TypePin
-        elif tableParam == "ParamTrag_TypeCable":
-            tableParamObj = saga_db.ParamTrag_TypeCable
-        elif tableParam == "ParamOther":
-            tableParamObj = saga_db.ParamOther
-        elif tableParam == "Role":
+        if tableParam == "Role":
             tableParamObj = saga_db.Role       
         elif tableParam == "Autorisation":
             tableParamObj = saga_db.Autorisation    
-        elif tableParam == "RoutingGTI":    # ATTENTION IL Y A DES TABLES LIEES !!!! QUE FAIRE ???
-            tableParamObj = saga_db.RoutingGTI
+        elif tableParam == "saga":
+            tableParamObj = saga_db.Saga
+        elif tableParam == "version":
+            tableParamObj = saga_db.Version  
+        elif tableParam == "auteur":
+            tableParamObj = saga_db.Auteur  
+        elif tableParam == "type":
+            tableParamObj = saga_db.Type  
+        elif tableParam == "bookpublishing":
+            tableParamObj = saga_db.MaisonEdition
+        elif tableParam == "owner":
+            tableParamObj = saga_db.Proprietaire
+        elif tableParam == "location":
+            tableParamObj = saga_db.Emplacement
 
         out = web.handler.JsonResponse()
         out.ensure_user_is_logged_in(self.user)
@@ -596,22 +678,10 @@ class ParamDelHandler(web.handler.JsonHandler):
                 self.delRoleUser(rowId)
                 self.delRoleAutorisation(rowId)
 
-            if tableParam == "RoutingGTI":
-                self.delProcessRoutingGTI(rowId)
-                # Si on a des données dans ces tablea qu'estce que l'on fait ???
-                # ProcessPV
-                # ParamCOMS
-                # ParamGTI
-                # ProcessPFE
-
             out.set_body("Id " + str(rowId) + " supprimé dans la table " + tableParam)
 
         self.write_json(out.to_dict())
     
-    def delProcessRoutingGTI(self, rowId):
-        statement = delete(saga_db.ProcessRoutingGTI).where(saga_db.ProcessRoutingGTI.id_routingGTI==rowId)
-        self.db_session.execute(statement)
-        self.db_session.commit()
 
     def delRoleUser(self, rowId):
         # Nouvelle syntaxe cf doc SqlAlchemy
@@ -624,4 +694,4 @@ class ParamDelHandler(web.handler.JsonHandler):
         statement = delete(saga_db.RoleAutorisation).where(saga_db.RoleAutorisation.id_role==rowId)
         self.db_session.execute(statement)
         self.db_session.commit()
-"""
+
