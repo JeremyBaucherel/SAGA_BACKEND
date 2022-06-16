@@ -6,6 +6,9 @@ import hashlib
 import random
 import sendmail
 import string
+from sqlalchemy import func, true
+from sqlalchemy import null
+from sqlalchemy import literal_column
 import tornado
 import uuid
 import datetime
@@ -39,36 +42,106 @@ class DashboardHandler(web.handler.JsonHandler):
         out.ensure_user_has_authorization(self.user, u"BOOK:DISPLAY")
 
         if out.ok() and user_id:
-
+            """
             qry = self.db_session.query(saga_db.Bibliotheque) \
                 .outerjoin(saga_db.Type) \
                 .outerjoin(saga_db.Emplacement) \
                 .outerjoin(saga_db.Proprietaire) \
                 .outerjoin(saga_db.Saga) \
                 .outerjoin(saga_db.MaisonEdition)
+            """
+            qry = self.db_session.query(saga_db.Bibliotheque.id,
+                                        saga_db.Bibliotheque.id_type,
+                                        saga_db.Type.name_type,
+                                        saga_db.Bibliotheque.id_saga,
+                                        saga_db.Saga.name_saga,
+                                        saga_db.Bibliotheque.number,
+                                        saga_db.Bibliotheque.name,
+                                        saga_db.Bibliotheque.id_book_publishing,
+                                        saga_db.MaisonEdition.name_book_publishing,
+                                        saga_db.Bibliotheque.id_owner,
+                                        saga_db.Proprietaire.name_owner,
+                                        saga_db.Bibliotheque.id_location,
+                                        saga_db.Emplacement.name_location,
+                                        func.string_agg(saga_db.Auteur.name_author, literal_column("', '")).label('name_author'),
+                                        saga_db.Emprunteur.borrower,
+                                        saga_db.Emprunteur.borrowing_date
+                                    ).outerjoin(saga_db.Type) \
+                                    .outerjoin(saga_db.Emplacement) \
+                                    .outerjoin(saga_db.Proprietaire) \
+                                    .outerjoin(saga_db.Saga) \
+                                    .outerjoin(saga_db.MaisonEdition) \
+                                    .outerjoin(saga_db.Emprunteur) \
+                                        .outerjoin(saga_db.AuteurBibliotheque) \
+                                        .outerjoin(saga_db.Auteur) \
+                                    .group_by(saga_db.Bibliotheque.id,
+                                        saga_db.Bibliotheque.id_type,
+                                        saga_db.Type.name_type,
+                                        saga_db.Bibliotheque.id_saga,
+                                        saga_db.Saga.name_saga,
+                                        saga_db.Bibliotheque.number,
+                                        saga_db.Bibliotheque.name,
+                                        saga_db.Bibliotheque.id_book_publishing,
+                                        saga_db.MaisonEdition.name_book_publishing,
+                                        saga_db.Bibliotheque.id_owner,
+                                        saga_db.Proprietaire.name_owner,
+                                        saga_db.Bibliotheque.id_location,
+                                        saga_db.Emplacement.name_location,
+                                        saga_db.Emprunteur.borrower,
+                                        saga_db.Emprunteur.borrowing_date,
+                                        saga_db.AuteurBibliotheque.id_book_list) \
+                                    .distinct()
 
+            # sqlalchemy.func.count(saga_db.Auteur.name_author).label('name_author')
             dashboard=[]
             
             for dash in qry.all(): 
                 dashboard.append({
                     u"id": dash.id,
                     u"id_type": dash.id_type,
-                    u"name_type": dash.Type.name_type,
+                    u"name_type": dash.name_type,
                     u"id_saga": dash.id_saga if dash.id_saga else -1,
-                    u"name_saga": dash.Saga.name_saga if dash.Saga else "",
+                    u"name_saga": dash.name_saga if dash.name_saga else "",
                     u"number": dash.number,
                     u"name": dash.name,
                     u"id_book_publishing": dash.id_book_publishing if dash.id_book_publishing else -1,
-                    u"name_book_publishing": dash.MaisonEdition.name_book_publishing if dash.MaisonEdition else "",
+                    u"name_book_publishing": dash.name_book_publishing if dash.name_book_publishing else "",
                     u"id_owner": dash.id_owner if dash.id_owner else -1,
-                    u"name_owner": dash.Proprietaire.name_owner if dash.Proprietaire else "",
+                    u"name_owner": dash.name_owner if dash.name_owner else "",
                     u"id_location": dash.id_location if dash.id_location else -1,
-                    u"name_location": dash.Emplacement.name_location if dash.Emplacement else "",
+                    u"name_location": dash.name_location if dash.name_location else "",
+                    u"authors": dash.name_author if dash.name_author else "",
+                    u"borrower": dash.borrower if dash.borrower else "",
+                    u"borrowing_date": dash.borrowing_date.strftime('%Y-%m-%d %H:%M') if dash.borrowing_date else "",
                 })
             #dashboard = sorted(dashboard, key=lambda x: x[u"Date entrée station"])
             out.set_body(dashboard)
 
         self.write_json(out.to_dict())
+
+@web.route(u"/api/book/dashboard/valretour")
+class DashboardReturnBookHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        rowId = params.get("rowId", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            # Sélection de la ligne ID à supprimer
+            param = self.db_session.query(saga_db.Emprunteur).filter_by(id_book_list=rowId).first()
+            # Suppression de la ligne
+            self.db_session.delete(param)
+            # Confirmer la suppression
+            self.db_session.commit()
 
 
 @web.route(u"/api/book/dashboard/edit")
@@ -87,9 +160,57 @@ class DashboardEditHandler(web.handler.JsonHandler):
         out.ensure_user_has_authorization(self.user, authorization)
 
         if out.ok() and user_id:
+            ajout_emprunteur = False
+            borrowing_date = datetime.datetime.now().strftime('%Y-%m-%d')
+            borrower = ""
 
-            db_param = saga_db.Bibliotheque()
-            print("Add a coder...")
+            for v in saveRows:
+                edit = True
+                rowId = v["id"]
+                columnName = v['columnName']
+                value = v['value'] if 'value' in v else None # Si on ne coche pas le menu déroulant la clef value n'existe plus, la valeur est alors défifine à NULL dans la BDD
+                colId = "id"
+
+                # Le nom de la colonne name_ est remplacé par id_
+                columnName = columnName.replace("name_", "id_")
+
+                if columnName=="borrower" or columnName=="borrowing_date":
+                    edit = False
+                    param = self.db_session.query(saga_db.Emprunteur).filter_by(id_book_list=rowId)
+
+                    if param.count() > 0:
+
+                        param = self.db_session.query(saga_db.Emprunteur).filter(saga_db.Emprunteur.id_book_list == rowId).first()
+
+                        if columnName == "borrowing_date": 
+                            value = datetime.datetime.strptime(value, '%Y-%m-%d')
+                            param.borrowing_date = value
+                        if columnName == "borrower":
+                            param.borrower = value
+                            
+                        self.db_session.commit()
+                    else:
+                        ajout_emprunteur = True
+                        if columnName == "borrower": borrower = value
+                        if columnName == "borrowing_date": borrowing_date = datetime.datetime.strptime(value, '%Y-%m-%d')
+
+                if edit:
+                    param = self.db_session.query(saga_db.Bibliotheque).get({colId:rowId})
+                    setattr(param, columnName, value)
+                    self.db_session.commit()
+
+            if ajout_emprunteur:
+                db_Emp = saga_db.Emprunteur()
+                db_Emp.id_book_list = rowId
+                db_Emp.borrower = borrower
+                db_Emp.borrowing_date = borrowing_date
+                self.db_session.add(db_Emp)
+                self.db_session.commit()
+
+
+            out.set_body("Valeur enregistrée dans la table Bibliotheque")
+
+        self.write_json(out.to_dict())
 
 
 
@@ -111,8 +232,36 @@ class DashboardAddHandler(web.handler.JsonHandler):
 
         if out.ok() and user_id:
 
-            db_param = saga_db.Bibliotheque()
-            print("Edit a coder...")
+            db_Bib = saga_db.Bibliotheque()
+            db_Bib.id_type = addRow["name_type"] if "name_type" in addRow else None
+            db_Bib.id_saga = addRow["name_saga"] if "name_saga" in addRow else None
+            db_Bib.number = addRow["number"] if "number" in addRow else ""
+            db_Bib.name = addRow["name"] if "name" in addRow else ""
+            db_Bib.id_book_publishing = addRow["name_book_publishing"] if "name_book_publishing" in addRow else None
+            db_Bib.id_owner = addRow["name_owner"] if "name_owner" in addRow else None
+            db_Bib.id_location = addRow["name_location"] if "name_location" in addRow else None
+            self.db_session.add(db_Bib)
+            self.db_session.flush()
+            # At this point, the object db_Bib has been pushed to the DB, 
+            # and has been automatically assigned a unique primary key id
+            self.db_session.refresh(db_Bib)
+            # refresh updates given object in the session with its state in the DB
+
+            id_book_list = db_Bib.id
+            # is the automatically assigned primary key ID given in the database.
+            self.db_session.commit()
+
+            if "borrower" in addRow and "borrowing_date" in addRow:
+                db_Emp = saga_db.Emprunteur()
+                db_Emp.id_book_list = id_book_list
+                db_Emp.borrower = addRow["borrower"] if "borrower" in addRow else ""
+                db_Emp.borrowing_date = datetime.datetime.strptime(addRow["borrowing_date"], '%Y-%m-%d') if "borrowing_date" in addRow else datetime.datetime.now().strftime('%Y-%m-%d')
+                self.db_session.add(db_Emp)
+
+                self.db_session.commit()
+
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Bibliotheque")
 
 
 
@@ -135,13 +284,23 @@ class DashboardDelHandler(web.handler.JsonHandler):
         if out.ok() and user_id:
 
             # Sélection de la ligne ID à supprimer
-            param = self.db_session.query(saga_db.Bibliotheque()).filter_by(id=delRow).first()
-
+            param = self.db_session.query(saga_db.Bibliotheque).filter_by(id=delRow).first()
             # Suppression de la ligne
             self.db_session.delete(param)
-
             # Confirmer la suppression
             self.db_session.commit()
+
+            # Suppression dans la table Emprunteur
+            borrower = self.db_session.query(saga_db.Emprunteur).filter_by(id_book_list=delRow).first()
+            if not borrower is None:
+                self.db_session.delete(borrower)
+                self.db_session.commit()
+
+            # Suppression dans la table Author_book_list
+            authorBookList = self.db_session.query(saga_db.AuteurBibliotheque).filter_by(id_book_list=delRow).first()
+            if not authorBookList is None:
+                self.db_session.delete(authorBookList)
+                self.db_session.commit()           
 
 
 @web.route("/api/book/liste/type")
