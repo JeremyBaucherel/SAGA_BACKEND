@@ -16,12 +16,12 @@ import config
 import web.handler
 import saga_db
 
-@web.route(u"/api/book/dashboard")
-class DashboardHandler(web.handler.JsonHandler):
+@web.route(u"/api/bibliotheque/dashboard")
+class BibliothequeDashboardHandler(web.handler.JsonHandler):
     class JsonDashboard(TypedDict):
         id: int
-        id_type: int
-        name_type: str
+        id_categorie: int
+        name_categorie: str
         id_saga: int
         name_saga: str
         number: str
@@ -37,69 +37,68 @@ class DashboardHandler(web.handler.JsonHandler):
 
         user_id = self.user[u"id"]
 
-        out = web.handler.JsonResponse[DashboardHandler.JsonDashboard]()
+        out = web.handler.JsonResponse[BibliothequeDashboardHandler.JsonDashboard]()
         out.ensure_user_is_logged_in(self.user)
         out.ensure_user_has_authorization(self.user, u"BOOK:DISPLAY")
 
         if out.ok() and user_id:
             """
             qry = self.db_session.query(saga_db.Bibliotheque) \
-                .outerjoin(saga_db.Type) \
-                .outerjoin(saga_db.Emplacement) \
-                .outerjoin(saga_db.Proprietaire) \
-                .outerjoin(saga_db.Saga) \
-                .outerjoin(saga_db.MaisonEdition)
+                .outerjoin(saga_db.Bibliotheque_Categorie) \
+                .outerjoin(saga_db.Bibliotheque_Emplacement) \
+                .outerjoin(saga_db.Bibliotheque_Proprietaire) \
+                .outerjoin(saga_db.Bibliotheque_) \
+                .outerjoin(saga_db.Bibliotheque_MaisonEdition)
             """
             qry = self.db_session.query(saga_db.Bibliotheque.id,
-                                        saga_db.Bibliotheque.id_type,
-                                        saga_db.Type.name_type,
+                                        saga_db.Bibliotheque.id_categorie,
+                                        saga_db.Bibliotheque_Categorie.name_categorie,
                                         saga_db.Bibliotheque.id_saga,
-                                        saga_db.Saga.name_saga,
+                                        saga_db.Bibliotheque_Saga.name_saga,
                                         saga_db.Bibliotheque.number,
                                         saga_db.Bibliotheque.name,
                                         saga_db.Bibliotheque.id_book_publishing,
-                                        saga_db.MaisonEdition.name_book_publishing,
+                                        saga_db.Bibliotheque_MaisonEdition.name_book_publishing,
                                         saga_db.Bibliotheque.id_owner,
-                                        saga_db.Proprietaire.name_owner,
+                                        saga_db.Bibliotheque_Proprietaire.name_owner,
                                         saga_db.Bibliotheque.id_location,
-                                        saga_db.Emplacement.name_location,
-                                        func.string_agg(saga_db.Auteur.name_author, literal_column("', '")).label('name_author'),
-                                        saga_db.Emprunteur.borrower,
-                                        saga_db.Emprunteur.borrowing_date
-                                    ).outerjoin(saga_db.Type) \
-                                    .outerjoin(saga_db.Emplacement) \
-                                    .outerjoin(saga_db.Proprietaire) \
-                                    .outerjoin(saga_db.Saga) \
-                                    .outerjoin(saga_db.MaisonEdition) \
-                                    .outerjoin(saga_db.Emprunteur) \
+                                        saga_db.Bibliotheque_Emplacement.name_location,
+                                        func.string_agg(saga_db.Bibliotheque_Auteur.name_author, literal_column("', '")).label('name_author'),
+                                        saga_db.Bibliotheque_Emprunteur.borrower,
+                                        saga_db.Bibliotheque_Emprunteur.borrowing_date
+                                    ).outerjoin(saga_db.Bibliotheque_Categorie) \
+                                    .outerjoin(saga_db.Bibliotheque_Emplacement) \
+                                    .outerjoin(saga_db.Bibliotheque_Proprietaire) \
+                                    .outerjoin(saga_db.Bibliotheque_Saga) \
+                                    .outerjoin(saga_db.Bibliotheque_MaisonEdition) \
+                                    .outerjoin(saga_db.Bibliotheque_Emprunteur) \
                                         .outerjoin(saga_db.AuteurBibliotheque) \
-                                        .outerjoin(saga_db.Auteur) \
+                                        .outerjoin(saga_db.Bibliotheque_Auteur) \
                                     .group_by(saga_db.Bibliotheque.id,
-                                        saga_db.Bibliotheque.id_type,
-                                        saga_db.Type.name_type,
+                                        saga_db.Bibliotheque.id_categorie,
+                                        saga_db.Bibliotheque_Categorie.name_categorie,
                                         saga_db.Bibliotheque.id_saga,
-                                        saga_db.Saga.name_saga,
+                                        saga_db.Bibliotheque_Saga.name_saga,
                                         saga_db.Bibliotheque.number,
                                         saga_db.Bibliotheque.name,
                                         saga_db.Bibliotheque.id_book_publishing,
-                                        saga_db.MaisonEdition.name_book_publishing,
+                                        saga_db.Bibliotheque_MaisonEdition.name_book_publishing,
                                         saga_db.Bibliotheque.id_owner,
-                                        saga_db.Proprietaire.name_owner,
+                                        saga_db.Bibliotheque_Proprietaire.name_owner,
                                         saga_db.Bibliotheque.id_location,
-                                        saga_db.Emplacement.name_location,
-                                        saga_db.Emprunteur.borrower,
-                                        saga_db.Emprunteur.borrowing_date,
+                                        saga_db.Bibliotheque_Emplacement.name_location,
+                                        saga_db.Bibliotheque_Emprunteur.borrower,
+                                        saga_db.Bibliotheque_Emprunteur.borrowing_date,
                                         saga_db.AuteurBibliotheque.id_book_list) \
                                     .distinct()
 
-            # sqlalchemy.func.count(saga_db.Auteur.name_author).label('name_author')
             dashboard=[]
             
             for dash in qry.all(): 
                 dashboard.append({
                     u"id": dash.id,
-                    u"id_type": dash.id_type,
-                    u"name_type": dash.name_type,
+                    u"id_categorie": dash.id_categorie,
+                    u"name_categorie": dash.name_categorie,
                     u"id_saga": dash.id_saga if dash.id_saga else -1,
                     u"name_saga": dash.name_saga if dash.name_saga else "",
                     u"number": dash.number,
@@ -119,8 +118,8 @@ class DashboardHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-@web.route(u"/api/book/dashboard/valretour")
-class DashboardReturnBookHandler(web.handler.JsonHandler):
+@web.route(u"/api/bibliotheque/dashboard/valretour")
+class BlibliothequeDashboardReturnBookHandler(web.handler.JsonHandler):
 
     def post(self):
 
@@ -137,15 +136,14 @@ class DashboardReturnBookHandler(web.handler.JsonHandler):
         if out.ok() and user_id:
 
             # Sélection de la ligne ID à supprimer
-            param = self.db_session.query(saga_db.Emprunteur).filter_by(id_book_list=rowId).first()
+            param = self.db_session.query(saga_db.Bibliotheque_Emprunteur).filter_by(id_book_list=rowId).first()
             # Suppression de la ligne
             self.db_session.delete(param)
             # Confirmer la suppression
             self.db_session.commit()
 
-
-@web.route(u"/api/book/dashboard/edit")
-class DashboardEditHandler(web.handler.JsonHandler):
+@web.route(u"/api/bibliotheque/dashboard/edit")
+class BibliothequeDashboardEditHandler(web.handler.JsonHandler):
 
     def post(self):
 
@@ -176,11 +174,11 @@ class DashboardEditHandler(web.handler.JsonHandler):
 
                 if columnName=="borrower" or columnName=="borrowing_date":
                     edit = False
-                    param = self.db_session.query(saga_db.Emprunteur).filter_by(id_book_list=rowId)
+                    param = self.db_session.query(saga_db.Bibliotheque_Emprunteur).filter_by(id_book_list=rowId)
 
                     if param.count() > 0:
 
-                        param = self.db_session.query(saga_db.Emprunteur).filter(saga_db.Emprunteur.id_book_list == rowId).first()
+                        param = self.db_session.query(saga_db.Bibliotheque_Emprunteur).filter(saga_db.Bibliotheque_Emprunteur.id_book_list == rowId).first()
 
                         if columnName == "borrowing_date": 
                             value = datetime.datetime.strptime(value, '%Y-%m-%d')
@@ -200,7 +198,7 @@ class DashboardEditHandler(web.handler.JsonHandler):
                     self.db_session.commit()
 
             if ajout_emprunteur:
-                db_Emp = saga_db.Emprunteur()
+                db_Emp = saga_db.Bibliotheque_Emprunteur()
                 db_Emp.id_book_list = rowId
                 db_Emp.borrower = borrower
                 db_Emp.borrowing_date = borrowing_date
@@ -212,11 +210,8 @@ class DashboardEditHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-
-
-
-@web.route(u"/api/book/dashboard/add")
-class DashboardAddHandler(web.handler.JsonHandler):
+@web.route(u"/api/bibliotheque/dashboard/add")
+class BibliothequeDashboardAddHandler(web.handler.JsonHandler):
 
     def post(self):
 
@@ -233,7 +228,7 @@ class DashboardAddHandler(web.handler.JsonHandler):
         if out.ok() and user_id:
 
             db_Bib = saga_db.Bibliotheque()
-            db_Bib.id_type = addRow["name_type"] if "name_type" in addRow else None
+            db_Bib.id_categorie = addRow["name_categorie"] if "name_categorie" in addRow else None
             db_Bib.id_saga = addRow["name_saga"] if "name_saga" in addRow else None
             db_Bib.number = addRow["number"] if "number" in addRow else ""
             db_Bib.name = addRow["name"] if "name" in addRow else ""
@@ -252,7 +247,7 @@ class DashboardAddHandler(web.handler.JsonHandler):
             self.db_session.commit()
 
             if "borrower" in addRow and "borrowing_date" in addRow:
-                db_Emp = saga_db.Emprunteur()
+                db_Emp = saga_db.Bibliotheque_Emprunteur()
                 db_Emp.id_book_list = id_book_list
                 db_Emp.borrower = addRow["borrower"] if "borrower" in addRow else ""
                 db_Emp.borrowing_date = datetime.datetime.strptime(addRow["borrowing_date"], '%Y-%m-%d') if "borrowing_date" in addRow else datetime.datetime.now().strftime('%Y-%m-%d')
@@ -263,11 +258,8 @@ class DashboardAddHandler(web.handler.JsonHandler):
 
             out.set_body("Nouvelle ligne ajoutée dans la table Bibliotheque")
 
-
-
-
-@web.route(u"/api/book/dashboard/del")
-class DashboardDelHandler(web.handler.JsonHandler):
+@web.route(u"/api/bibliotheque/dashboard/del")
+class BibliothequeDashboardDelHandler(web.handler.JsonHandler):
 
     def post(self):
 
@@ -290,8 +282,8 @@ class DashboardDelHandler(web.handler.JsonHandler):
             # Confirmer la suppression
             self.db_session.commit()
 
-            # Suppression dans la table Emprunteur
-            borrower = self.db_session.query(saga_db.Emprunteur).filter_by(id_book_list=delRow).first()
+            # Suppression dans la table Bibliotheque_Emprunteur
+            borrower = self.db_session.query(saga_db.Bibliotheque_Emprunteur).filter_by(id_book_list=delRow).first()
             if not borrower is None:
                 self.db_session.delete(borrower)
                 self.db_session.commit()
@@ -302,39 +294,38 @@ class DashboardDelHandler(web.handler.JsonHandler):
                 self.db_session.delete(authorBookList)
                 self.db_session.commit()           
 
-
-@web.route("/api/book/liste/type")
-class TypeHandler(web.handler.JsonHandler):
+@web.route("/api/bibliotheque/liste/categorie")
+class BibliothequeCategorieHandler(web.handler.JsonHandler):
     def post(self):
 
         out = web.handler.JsonResponse()
 
         if out.ok():
 
-            qry = self.db_session.query(saga_db.Type) \
-                .order_by(saga_db.Type.name_type)
+            qry = self.db_session.query(saga_db.Bibliotheque_Categorie) \
+                .order_by(saga_db.Bibliotheque_Categorie.name_categorie)
 
             tabParam=[]
             for param in qry.all():  
                 tabParam.append({
                     "id": param.id,
-                    "text": param.name_type,
+                    "text": param.name_categorie,
                 })
 
             out.set_body(tabParam)
 
         self.write_json(out.to_dict())
 
-@web.route("/api/book/liste/saga")
-class SagaHandler(web.handler.JsonHandler):
+@web.route("/api/bibliotheque/liste/saga")
+class BibliothequeSagaHandler(web.handler.JsonHandler):
     def post(self):
 
         out = web.handler.JsonResponse()
 
         if out.ok():
 
-            qry = self.db_session.query(saga_db.Saga) \
-                .order_by(saga_db.Saga.name_saga)
+            qry = self.db_session.query(saga_db.Bibliotheque_Saga) \
+                .order_by(saga_db.Bibliotheque_Saga.name_saga)
 
             tabParam=[]
             for param in qry.all():  
@@ -347,16 +338,16 @@ class SagaHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-@web.route("/api/book/liste/publishing")
-class PublishingHandler(web.handler.JsonHandler):
+@web.route("/api/bibliotheque/liste/publishing")
+class BibliothequePublishingHandler(web.handler.JsonHandler):
     def post(self):
 
         out = web.handler.JsonResponse()
 
         if out.ok():
 
-            qry = self.db_session.query(saga_db.MaisonEdition) \
-                .order_by(saga_db.MaisonEdition.name_book_publishing)
+            qry = self.db_session.query(saga_db.Bibliotheque_MaisonEdition) \
+                .order_by(saga_db.Bibliotheque_MaisonEdition.name_book_publishing)
 
             tabParam=[]
             for param in qry.all():  
@@ -369,16 +360,16 @@ class PublishingHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-@web.route("/api/book/liste/owner")
-class OwnerHandler(web.handler.JsonHandler):
+@web.route("/api/bibliotheque/liste/owner")
+class BibliothequeOwnerHandler(web.handler.JsonHandler):
     def post(self):
 
         out = web.handler.JsonResponse()
 
         if out.ok():
 
-            qry = self.db_session.query(saga_db.Proprietaire) \
-                .order_by(saga_db.Proprietaire.name_owner)
+            qry = self.db_session.query(saga_db.Bibliotheque_Proprietaire) \
+                .order_by(saga_db.Bibliotheque_Proprietaire.name_owner)
 
             tabParam=[]
             for param in qry.all():  
@@ -391,16 +382,16 @@ class OwnerHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-@web.route("/api/book/liste/location")
-class LocationHandler(web.handler.JsonHandler):
+@web.route("/api/bibliotheque/liste/location")
+class BibliothequeLocationHandler(web.handler.JsonHandler):
     def post(self):
 
         out = web.handler.JsonResponse()
 
         if out.ok():
 
-            qry = self.db_session.query(saga_db.Emplacement) \
-                .order_by(saga_db.Emplacement.name_location)
+            qry = self.db_session.query(saga_db.Bibliotheque_Emplacement) \
+                .order_by(saga_db.Bibliotheque_Emplacement.name_location)
 
             tabParam=[]
             for param in qry.all():  
@@ -412,3 +403,4 @@ class LocationHandler(web.handler.JsonHandler):
             out.set_body(tabParam)
 
         self.write_json(out.to_dict())
+

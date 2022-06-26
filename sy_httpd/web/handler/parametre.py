@@ -8,6 +8,8 @@ import saga_db
 import config
 
 
+## APPLICATION ##
+
 @web.route("/api/param/Role")
 class RoleHandler(web.handler.JsonHandler):
     def post(self) -> None:
@@ -37,7 +39,6 @@ class RoleHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-# Utilisation pour la page d'administration des rôles et autorisations (FormList)
 @web.route("/api/param/Autorisation")
 class RoleHandler(web.handler.JsonHandler):
     def post(self) -> None:
@@ -129,10 +130,9 @@ class RoleAutorisationHandler(web.handler.JsonHandler):
         self.write_json(out.to_dict())
 
 @web.route("/api/param/role-autorisation/edit")
-class ParamEditHandler(web.handler.JsonHandler):
+class RoleAutorisationEditHandler(web.handler.JsonHandler):
 
     def post(self) -> None:
-
         user_id = self.user["id"]
 
         params = self.parse_json_body()
@@ -197,138 +197,6 @@ class VersionHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
-@web.route("/api/param/saga")
-class SagaHandler(web.handler.JsonHandler):
-    def post(self):
-
-        out = web.handler.JsonResponse()
-
-        if out.ok():
-
-            qry = self.db_session.query(saga_db.Saga) \
-                .order_by(saga_db.Saga.name_saga)
-
-            tabParam=[]
-            for param in qry.all():  
-                tabParam.append({
-                    "id": param.id,
-                    "name_saga": param.name_saga,
-                })
-
-            out.set_body(tabParam)
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/auteur")
-class AuteurHandler(web.handler.JsonHandler):
-    def post(self):
-
-        out = web.handler.JsonResponse()
-
-        if out.ok():
-
-            qry = self.db_session.query(saga_db.Auteur) \
-                .order_by(saga_db.Auteur.name_author)
-
-            tabParam=[]
-            for param in qry.all():  
-                tabParam.append({
-                    "id": param.id,
-                    "name_author": param.name_author,
-                })
-
-            out.set_body(tabParam)
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/type")
-class TypeHandler(web.handler.JsonHandler):
-    def post(self):
-
-        out = web.handler.JsonResponse()
-
-        if out.ok():
-
-            qry = self.db_session.query(saga_db.Type) \
-                .order_by(saga_db.Type.name_type)
-
-            tabParam=[]
-            for param in qry.all():  
-                tabParam.append({
-                    "id": param.id,
-                    "name_type": param.name_type,
-                })
-
-            out.set_body(tabParam)
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/bookpublishing")
-class BookPublishingHandler(web.handler.JsonHandler):
-    def post(self):
-
-        out = web.handler.JsonResponse()
-
-        if out.ok():
-
-            qry = self.db_session.query(saga_db.MaisonEdition) \
-                .order_by(saga_db.MaisonEdition.name_book_publishing)
-
-            tabParam=[]
-            for param in qry.all():  
-                tabParam.append({
-                    "id": param.id,
-                    "name_book_publishing": param.name_book_publishing,
-                })
-
-            out.set_body(tabParam)
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/owner")
-class OwnerHandler(web.handler.JsonHandler):
-    def post(self):
-
-        out = web.handler.JsonResponse()
-
-        if out.ok():
-
-            qry = self.db_session.query(saga_db.Proprietaire) \
-                .order_by(saga_db.Proprietaire.name_owner)
-
-            tabParam=[]
-            for param in qry.all():  
-                tabParam.append({
-                    "id": param.id,
-                    "name_owner": param.name_owner,
-                })
-
-            out.set_body(tabParam)
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/location")
-class LocationHandler(web.handler.JsonHandler):
-    def post(self):
-
-        out = web.handler.JsonResponse()
-
-        if out.ok():
-
-            qry = self.db_session.query(saga_db.Emplacement) \
-                .order_by(saga_db.Emplacement.name_location)
-
-            tabParam=[]
-            for param in qry.all():  
-                tabParam.append({
-                    "id": param.id,
-                    "name_location": param.name_location,
-                })
-
-            out.set_body(tabParam)
-
-        self.write_json(out.to_dict())
-
 @web.route("/api/param/Version/add")
 class VersionAddHandler(web.handler.JsonHandler):
 
@@ -356,168 +224,6 @@ class VersionAddHandler(web.handler.JsonHandler):
             self.db_session.commit()
 
             out.set_body("Nouvelle ligne ajoutée dans la table Version")
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/saga/add")
-class SagaAddHandler(web.handler.JsonHandler):
-
-    def post(self):
-
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        authorization = params.get("authorization", "")
-        addRow = params.get("addRow", "")
-
-        out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
-
-        if out.ok() and user_id:
-
-            db_param = saga_db.Saga()
-            db_param.name_saga = addRow["name_saga"] if "name_saga" in addRow else ""
-
-            self.db_session.add(db_param)
-            self.db_session.commit()
-
-            out.set_body("Nouvelle ligne ajoutée dans la table Saga")
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/auteur/add")
-class AuteurAddHandler(web.handler.JsonHandler):
-
-    def post(self):
-
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        authorization = params.get("authorization", "")
-        addRow = params.get("addRow", "")
-
-        out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
-
-        if out.ok() and user_id:
-
-            db_param = saga_db.Auteur()
-            db_param.name_author = addRow["name_author"] if "name_author" in addRow else ""
-
-            self.db_session.add(db_param)
-            self.db_session.commit()
-
-            out.set_body("Nouvelle ligne ajoutée dans la table Auteur")
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/type/add")
-class TypeAddHandler(web.handler.JsonHandler):
-
-    def post(self):
-
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        authorization = params.get("authorization", "")
-        addRow = params.get("addRow", "")
-
-        out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
-
-        if out.ok() and user_id:
-
-            db_param = saga_db.Type()
-            db_param.name_type = addRow["name_type"] if "name_type" in addRow else ""
-
-            self.db_session.add(db_param)
-            self.db_session.commit()
-
-            out.set_body("Nouvelle ligne ajoutée dans la table Type")
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/bookpublishing/add")
-class BookPublishingAddHandler(web.handler.JsonHandler):
-
-    def post(self):
-
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        authorization = params.get("authorization", "")
-        addRow = params.get("addRow", "")
-
-        out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
-
-        if out.ok() and user_id:
-
-            db_param = saga_db.MaisonEdition()
-            db_param.name_book_publishing = addRow["name_book_publishing"] if "name_book_publishing" in addRow else ""
-
-            self.db_session.add(db_param)
-            self.db_session.commit()
-
-            out.set_body("Nouvelle ligne ajoutée dans la table book_publishing")
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/owner/add")
-class OwnerAddHandler(web.handler.JsonHandler):
-
-    def post(self):
-
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        authorization = params.get("authorization", "")
-        addRow = params.get("addRow", "")
-
-        out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
-
-        if out.ok() and user_id:
-
-            db_param = saga_db.Proprietaire()
-            db_param.name_owner = addRow["name_owner"] if "name_owner" in addRow else ""
-
-            self.db_session.add(db_param)
-            self.db_session.commit()
-
-            out.set_body("Nouvelle ligne ajoutée dans la table owner")
-
-        self.write_json(out.to_dict())
-
-@web.route("/api/param/location/add")
-class LocationAddHandler(web.handler.JsonHandler):
-
-    def post(self):
-
-        user_id = self.user["id"]
-
-        params = self.parse_json_body()
-        authorization = params.get("authorization", "")
-        addRow = params.get("addRow", "")
-
-        out = web.handler.JsonResponse()
-        out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, authorization)
-
-        if out.ok() and user_id:
-
-            db_param = saga_db.Emplacement()
-            db_param.name_location = addRow["name_location"] if "name_location" in addRow else ""
-
-            self.db_session.add(db_param)
-            self.db_session.commit()
-
-            out.set_body("Nouvelle ligne ajoutée dans la table location")
 
         self.write_json(out.to_dict())
 
@@ -594,20 +300,8 @@ class ParamEditHandler(web.handler.JsonHandler):
             tableParamObj = saga_db.Role       
         elif tableParam == "Autorisation":
             tableParamObj = saga_db.Autorisation   
-        elif tableParam == "saga":
-            tableParamObj = saga_db.Saga
         elif tableParam == "version":
             tableParamObj = saga_db.Version           
-        elif tableParam == "auteur":
-            tableParamObj = saga_db.Auteur  
-        elif tableParam == "type":
-            tableParamObj = saga_db.Type  
-        elif tableParam == "bookpublishing":
-            tableParamObj = saga_db.MaisonEdition
-        elif tableParam == "owner":
-            tableParamObj = saga_db.Proprietaire
-        elif tableParam == "location":
-            tableParamObj = saga_db.Emplacement
 
         out = web.handler.JsonResponse()
         out.ensure_user_is_logged_in(self.user)
@@ -644,20 +338,8 @@ class ParamDelHandler(web.handler.JsonHandler):
             tableParamObj = saga_db.Role       
         elif tableParam == "Autorisation":
             tableParamObj = saga_db.Autorisation    
-        elif tableParam == "saga":
-            tableParamObj = saga_db.Saga
         elif tableParam == "version":
             tableParamObj = saga_db.Version  
-        elif tableParam == "auteur":
-            tableParamObj = saga_db.Auteur  
-        elif tableParam == "type":
-            tableParamObj = saga_db.Type  
-        elif tableParam == "bookpublishing":
-            tableParamObj = saga_db.MaisonEdition
-        elif tableParam == "owner":
-            tableParamObj = saga_db.Proprietaire
-        elif tableParam == "location":
-            tableParamObj = saga_db.Emplacement
 
         out = web.handler.JsonResponse()
         out.ensure_user_is_logged_in(self.user)
@@ -694,4 +376,722 @@ class ParamDelHandler(web.handler.JsonHandler):
         statement = delete(saga_db.RoleAutorisation).where(saga_db.RoleAutorisation.id_role==rowId)
         self.db_session.execute(statement)
         self.db_session.commit()
+
+
+## Bibliothèque ##
+
+@web.route("/api/bibliotheque/param/saga")
+class BibliothequeSagaHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_Saga) \
+                .order_by(saga_db.Bibliotheque_Saga.name_saga)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_saga": param.name_saga,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/auteur")
+class BibliothequeAuteurHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_Auteur) \
+                .order_by(saga_db.Bibliotheque_Auteur.name_author)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_author": param.name_author,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/categorie")
+class BibliothequeCategorieHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_Categorie) \
+                .order_by(saga_db.Bibliotheque_Categorie.name_categorie)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_categorie": param.name_categorie,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/bookpublishing")
+class BibliothequeBookPublishingHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_MaisonEdition) \
+                .order_by(saga_db.Bibliotheque_MaisonEdition.name_book_publishing)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_book_publishing": param.name_book_publishing,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/owner")
+class BibliothequeOwnerHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_Proprietaire) \
+                .order_by(saga_db.Bibliotheque_Proprietaire.name_owner)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_owner": param.name_owner,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/location")
+class BibliothequeLocationHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_Emplacement) \
+                .order_by(saga_db.Bibliotheque_Emplacement.name_location)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_location": param.name_location,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/saga/add")
+class BibliothequeSagaAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bibliotheque_Saga()
+            db_param.name_saga = addRow["name_saga"] if "name_saga" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Saga")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/auteur/add")
+class BibliothequeAuteurAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bibliotheque_Auteur()
+            db_param.name_author = addRow["name_author"] if "name_author" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Auteur")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/categorie/add")
+class BibliothequeCategorieAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bibliotheque_Categorie()
+            db_param.name_categorie = addRow["name_categorie"] if "name_categorie" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Bibliotheque_categorie")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/bookpublishing/add")
+class BibliothequeBookPublishingAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bibliotheque_MaisonEdition()
+            db_param.name_book_publishing = addRow["name_book_publishing"] if "name_book_publishing" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table book_publishing")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/owner/add")
+class BibliothequeOwnerAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bibliotheque_Proprietaire()
+            db_param.name_owner = addRow["name_owner"] if "name_owner" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table owner")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/location/add")
+class BibliothequeLocationAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bibliotheque_Emplacement()
+            db_param.name_location = addRow["name_location"] if "name_location" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table location")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/:tableParam/edit")
+class BibliothequeParamEditHandler(web.handler.JsonHandler):
+
+    def post(self, tableParam:str) -> None:
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        saveRows = params.get("saveRows", "")
+
+        if tableParam == "saga":
+            tableParamObj = saga_db.Bibliotheque_Saga        
+        elif tableParam == "auteur":
+            tableParamObj = saga_db.Bibliotheque_Auteur  
+        elif tableParam == "categorie":
+            tableParamObj = saga_db.Bibliotheque_Categorie 
+        elif tableParam == "bookpublishing":
+            tableParamObj = saga_db.Bibliotheque_MaisonEdition
+        elif tableParam == "owner":
+            tableParamObj = saga_db.Bibliotheque_Proprietaire
+        elif tableParam == "location":
+            tableParamObj = saga_db.Bibliotheque_Emplacement
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            for v in saveRows:
+                rowId = v["id"]
+                columnName = v['columnName']
+                value = v['value']
+                colId = "id"
+
+                param = self.db_session.query(tableParamObj).get({colId:rowId})
+                setattr(param, columnName, value)
+                self.db_session.commit()
+
+            out.set_body("Valeur enregistrée dans la table " + tableParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/:tableParam/del")
+class BibliothequeParamDelHandler(web.handler.JsonHandler):
+
+    def post(self, tableParam:str) -> None:
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        rowId = params.get("RowsId", "")
+
+        if tableParam == "saga":
+            tableParamObj = saga_db.Bibliotheque_Saga
+        elif tableParam == "auteur":
+            tableParamObj = saga_db.Bibliotheque_Auteur  
+        elif tableParam == "categorie":
+            tableParamObj = saga_db.Bibliotheque_Categorie 
+        elif tableParam == "bookpublishing":
+            tableParamObj = saga_db.Bibliotheque_MaisonEdition
+        elif tableParam == "owner":
+            tableParamObj = saga_db.Bibliotheque_Proprietaire
+        elif tableParam == "location":
+            tableParamObj = saga_db.Bibliotheque_Emplacement
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+            
+            # Sélection de la ligne ID à supprimer
+            param = self.db_session.query(tableParamObj).filter_by(id=rowId).first()
+
+            # Suppression de la ligne
+            self.db_session.delete(param)
+
+            # Confirmer la suppression
+            self.db_session.commit()
+
+            out.set_body("Id " + str(rowId) + " supprimé dans la table " + tableParam)
+
+        self.write_json(out.to_dict())
+
+
+## BLURAY ##
+
+@web.route("/api/bluray/param/saga")
+class BluraySagaHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bluray_Saga) \
+                .order_by(saga_db.Bluray_Saga.name_saga)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_saga": param.name_saga,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/coffret")
+class BlurayCoffretHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bluray_Coffret) \
+                .order_by(saga_db.Bluray_Coffret.name_coffret)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_coffret": param.name_coffret,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/categorie")
+class BlurayCategorieHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bluray_Categorie) \
+                .order_by(saga_db.Bluray_Categorie.name_categorie)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_categorie": param.name_categorie,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/owner")
+class BlurayOwnerHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bluray_Proprietaire) \
+                .order_by(saga_db.Bluray_Proprietaire.name_owner)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_owner": param.name_owner,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/location")
+class BlurayLocationHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bluray_Emplacement) \
+                .order_by(saga_db.Bluray_Emplacement.name_location)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_location": param.name_location,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+
+@web.route("/api/bluray/param/saga/add")
+class BluraySagaAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bluray_Saga()
+            db_param.name_saga = addRow["name_saga"] if "name_saga" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Bluray_Saga")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/coffret/add")
+class BlurayCoffretAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bluray_Coffret()
+            db_param.name_author = addRow["name_coffret"] if "name_coffret" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Bluray_Coffret")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/categorie/add")
+class BlurayCategorieAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bluray_Categorie()
+            db_param.name_categorie = addRow["name_categorie"] if "name_categorie" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Bluray_Categorie")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/owner/add")
+class BlurayOwnerAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bluray_Proprietaire()
+            db_param.name_owner = addRow["name_owner"] if "name_owner" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Bluray_Proprietaire")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/location/add")
+class BlurayLocationAddHandler(web.handler.JsonHandler):
+
+    def post(self):
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        addRow = params.get("addRow", "")
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            db_param = saga_db.Bluray_Emplacement()
+            db_param.name_location = addRow["name_location"] if "name_location" in addRow else ""
+
+            self.db_session.add(db_param)
+            self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Bluray_Emplacement")
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/:tableParam/edit")
+class BlurayParamEditHandler(web.handler.JsonHandler):
+
+    def post(self, tableParam:str) -> None:
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        saveRows = params.get("saveRows", "")
+
+        if tableParam == "saga":
+            tableParamObj = saga_db.Bluray_Saga        
+        elif tableParam == "coffret":
+            tableParamObj = saga_db.Bluray_Coffret  
+        elif tableParam == "categorie":
+            tableParamObj = saga_db.Bluray_Categorie 
+        elif tableParam == "owner":
+            tableParamObj = saga_db.Bluray_Proprietaire
+        elif tableParam == "location":
+            tableParamObj = saga_db.Bluray_Emplacement
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+
+            for v in saveRows:
+                rowId = v["id"]
+                columnName = v['columnName']
+                value = v['value']
+                colId = "id"
+
+                param = self.db_session.query(tableParamObj).get({colId:rowId})
+                setattr(param, columnName, value)
+                self.db_session.commit()
+
+            out.set_body("Valeur enregistrée dans la table " + tableParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bluray/param/:tableParam/del")
+class BlurayParamDelHandler(web.handler.JsonHandler):
+
+    def post(self, tableParam:str) -> None:
+
+        user_id = self.user["id"]
+
+        params = self.parse_json_body()
+        authorization = params.get("authorization", "")
+        rowId = params.get("RowsId", "")
+
+        if tableParam == "saga":
+            tableParamObj = saga_db.Bluray_Saga
+        elif tableParam == "coffret":
+            tableParamObj = saga_db.Bluray_Coffret  
+        elif tableParam == "categorie":
+            tableParamObj = saga_db.Bluray_Categorie 
+        elif tableParam == "bookpublishing":
+            tableParamObj = saga_db.Bluray_MaisonEdition
+        elif tableParam == "owner":
+            tableParamObj = saga_db.Bluray_Proprietaire
+        elif tableParam == "location":
+            tableParamObj = saga_db.Bluray_Emplacement
+
+        out = web.handler.JsonResponse()
+        out.ensure_user_is_logged_in(self.user)
+        out.ensure_user_has_authorization(self.user, authorization)
+
+        if out.ok() and user_id:
+            
+            # Sélection de la ligne ID à supprimer
+            param = self.db_session.query(tableParamObj).filter_by(id=rowId).first()
+
+            # Suppression de la ligne
+            self.db_session.delete(param)
+
+            # Confirmer la suppression
+            self.db_session.commit()
+
+            out.set_body("Id " + str(rowId) + " supprimé dans la table " + tableParam)
+
+        self.write_json(out.to_dict())
 
