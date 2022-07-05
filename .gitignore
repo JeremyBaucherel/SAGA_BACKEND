@@ -11,3 +11,4 @@ sy_httpd.egg-info/dependency_links.txt
 sy_httpd/web/handler/qn.pyc
 libs/sap/__init__.pyc
 saga_httpd/config.py
+wsgi.py
