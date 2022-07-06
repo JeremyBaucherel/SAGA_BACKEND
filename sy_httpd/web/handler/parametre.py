@@ -6,7 +6,8 @@ from sqlalchemy import delete
 import web.handler
 import saga_db
 import config
-
+from sqlalchemy import func, true
+from sqlalchemy import literal_column
 
 ## APPLICATION ##
 
@@ -410,14 +411,40 @@ class BibliothequeAuteurHandler(web.handler.JsonHandler):
 
         if out.ok():
 
-            qry = self.db_session.query(saga_db.Bibliotheque_Auteur) \
-                .order_by(saga_db.Bibliotheque_Auteur.name_author)
+            qry = self.db_session.query(saga_db.Bibliotheque_Auteur.id, saga_db.Bibliotheque_Auteur.name_author, func.string_agg(saga_db.Bibliotheque_Job.name_job, literal_column("', '")).label('name_job'),) \
+                                    .outerjoin(saga_db.Bibliotheque_JobAuteur, saga_db.Bibliotheque_JobAuteur.id_author == saga_db.Bibliotheque_Auteur.id) \
+                                    .outerjoin(saga_db.Bibliotheque_Job, saga_db.Bibliotheque_JobAuteur.id_job == saga_db.Bibliotheque_Job.id) \
+                                    .group_by(saga_db.Bibliotheque_Auteur.id, saga_db.Bibliotheque_Auteur.name_author) \
+                                    .distinct()
 
             tabParam=[]
             for param in qry.all():  
                 tabParam.append({
                     "id": param.id,
                     "name_author": param.name_author,
+                    "name_job": param.name_job,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
+@web.route("/api/bibliotheque/param/job")
+class BibliothequeJobHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_Job) \
+                .order_by(saga_db.Bibliotheque_Job.name_job)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "name_job": param.name_job,
                 })
 
             out.set_body(tabParam)
@@ -558,11 +585,24 @@ class BibliothequeAuteurAddHandler(web.handler.JsonHandler):
 
             db_param = saga_db.Bibliotheque_Auteur()
             db_param.name_author = addRow["name_author"] if "name_author" in addRow else ""
-
             self.db_session.add(db_param)
+            self.db_session.flush()
+            # At this point, the object db_Bib has been pushed to the DB, 
+            # and has been automatically assigned a unique primary key id
+            self.db_session.refresh(db_param)
+            # refresh updates given object in the session with its state in the DB
+            id_author = db_param.id
+            # is the automatically assigned primary key ID given in the database.
             self.db_session.commit()
 
-            out.set_body("Nouvelle ligne ajoutée dans la table Auteur")
+            for id_job in addRow["name_job"]:
+                db_jobAuteur = saga_db.Bibliotheque_JobAuteur()
+                db_jobAuteur.id_job = id_job
+                db_jobAuteur.id_author = id_author
+                self.db_session.add(db_jobAuteur)
+                self.db_session.commit()
+
+            out.set_body("Nouvelle ligne ajoutée dans la table Auteur et AuteurJob")
 
         self.write_json(out.to_dict())
 
@@ -709,10 +749,23 @@ class BibliothequeParamEditHandler(web.handler.JsonHandler):
                 columnName = v['columnName']
                 value = v['value']
                 colId = "id"
+                
+                if tableParam == "auteur" and columnName=="name_job":
+                    # Suppression dans la table de lien entre Métier et auteurs
+                    param = self.db_session.query(saga_db.Bibliotheque_JobAuteur).filter_by(id_author=rowId).delete()
+                    self.db_session.commit()
 
-                param = self.db_session.query(tableParamObj).get({colId:rowId})
-                setattr(param, columnName, value)
-                self.db_session.commit()
+                    # Ajout des nouveaux éléments
+                    for id_job in value:
+                        db_jobAuteur = saga_db.Bibliotheque_JobAuteur()
+                        db_jobAuteur.id_job = id_job
+                        db_jobAuteur.id_author = rowId
+                        self.db_session.add(db_jobAuteur)
+                        self.db_session.commit()
+                else:
+                    param = self.db_session.query(tableParamObj).get({colId:rowId})
+                    setattr(param, columnName, value)
+                    self.db_session.commit()
 
             out.set_body("Valeur enregistrée dans la table " + tableParam)
 
@@ -756,6 +809,11 @@ class BibliothequeParamDelHandler(web.handler.JsonHandler):
 
             # Confirmer la suppression
             self.db_session.commit()
+
+            if tableParam == "auteur":
+                # Suppression dans la table de lien entre Métier et auteurs
+                param = self.db_session.query(saga_db.Bibliotheque_JobAuteur).filter_by(id_author=rowId).delete()
+                self.db_session.commit()
 
             out.set_body("Id " + str(rowId) + " supprimé dans la table " + tableParam)
 
@@ -873,7 +931,6 @@ class BlurayLocationHandler(web.handler.JsonHandler):
             out.set_body(tabParam)
 
         self.write_json(out.to_dict())
-
 
 @web.route("/api/bluray/param/saga/add")
 class BluraySagaAddHandler(web.handler.JsonHandler):
