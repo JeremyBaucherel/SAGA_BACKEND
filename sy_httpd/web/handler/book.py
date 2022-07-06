@@ -169,8 +169,6 @@ class BibliothequeDashboardEditHandler(web.handler.JsonHandler):
                 value = v['value'] if 'value' in v else None # Si on ne coche pas le menu déroulant la clef value n'existe plus, la valeur est alors défifine à NULL dans la BDD
                 colId = "id"
 
-                # Le nom de la colonne name_ est remplacé par id_
-                columnName = columnName.replace("name_", "id_")
 
                 if columnName=="borrower" or columnName=="borrowing_date":
                     edit = False
@@ -208,8 +206,14 @@ class BibliothequeDashboardEditHandler(web.handler.JsonHandler):
 
                 if edit:
                     # Dans le cas ou la valeur provient d'une liste avec un seul item posible on récupère l'indice 0
-                    if columnName in ["name_categorie", "name_saga", "name_book_publishing", "name_owner", "name_location"] and value!= None:
-                        value = value[0]
+                    if columnName in ["name_categorie", "name_saga", "name_book_publishing", "name_owner", "name_location"]:
+                        if len(value)>0:
+                            value = value[0]
+                        else:
+                            value = None
+
+                    # Le nom de la colonne name_ est remplacé par id_
+                    columnName = columnName.replace("name_", "id_")
 
                     # Dans le cas ou la valeur provient d'une liste avec plusieurs items posible on boucle sur les indices
                     param = self.db_session.query(saga_db.Bibliotheque).get({colId:rowId})
