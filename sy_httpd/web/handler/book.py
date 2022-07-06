@@ -39,7 +39,7 @@ class BibliothequeDashboardHandler(web.handler.JsonHandler):
 
         out = web.handler.JsonResponse[BibliothequeDashboardHandler.JsonDashboard]()
         out.ensure_user_is_logged_in(self.user)
-        out.ensure_user_has_authorization(self.user, u"BOOK:DISPLAY")
+        out.ensure_user_has_authorization(self.user, u"BOOK_DASHBOARD:DISPLAY")
 
         if out.ok() and user_id:
             """
@@ -72,7 +72,7 @@ class BibliothequeDashboardHandler(web.handler.JsonHandler):
                                     .outerjoin(saga_db.Bibliotheque_Saga) \
                                     .outerjoin(saga_db.Bibliotheque_MaisonEdition) \
                                     .outerjoin(saga_db.Bibliotheque_Emprunteur) \
-                                        .outerjoin(saga_db.AuteurBibliotheque) \
+                                        .outerjoin(saga_db.Bibliotheque_AuteurBibliotheque) \
                                         .outerjoin(saga_db.Bibliotheque_Auteur) \
                                     .group_by(saga_db.Bibliotheque.id,
                                         saga_db.Bibliotheque.id_categorie,
@@ -89,7 +89,7 @@ class BibliothequeDashboardHandler(web.handler.JsonHandler):
                                         saga_db.Bibliotheque_Emplacement.name_location,
                                         saga_db.Bibliotheque_Emprunteur.borrower,
                                         saga_db.Bibliotheque_Emprunteur.borrowing_date,
-                                        saga_db.AuteurBibliotheque.id_book_list) \
+                                        saga_db.Bibliotheque_AuteurBibliotheque.id_book_list) \
                                     .distinct()
 
             dashboard=[]
@@ -192,7 +192,26 @@ class BibliothequeDashboardEditHandler(web.handler.JsonHandler):
                         if columnName == "borrower": borrower = value
                         if columnName == "borrowing_date": borrowing_date = datetime.datetime.strptime(value, '%Y-%m-%d')
 
+                if columnName == "authors":
+                    edit = False
+                    # Suppression dans la table de lien entre Métier et auteurs
+                    param = self.db_session.query(saga_db.Bibliotheque_AuteurBibliotheque).filter_by(id_book_list=rowId).delete()
+                    self.db_session.commit()
+
+                    # Ajout des nouveaux éléments
+                    for id_auteur in value:
+                        db_bookAuteur = saga_db.Bibliotheque_AuteurBibliotheque()
+                        db_bookAuteur.id_book_list = rowId
+                        db_bookAuteur.id_author = id_auteur
+                        self.db_session.add(db_bookAuteur)
+                        self.db_session.commit()
+
                 if edit:
+                    # Dans le cas ou la valeur provient d'une liste avec un seul item posible on récupère l'indice 0
+                    if columnName in ["name_categorie", "name_saga", "name_book_publishing", "name_owner", "name_location"] and value!= None:
+                        value = value[0]
+
+                    # Dans le cas ou la valeur provient d'une liste avec plusieurs items posible on boucle sur les indices
                     param = self.db_session.query(saga_db.Bibliotheque).get({colId:rowId})
                     setattr(param, columnName, value)
                     self.db_session.commit()
@@ -227,14 +246,20 @@ class BibliothequeDashboardAddHandler(web.handler.JsonHandler):
 
         if out.ok() and user_id:
 
+            id_categorie = addRow["name_categorie"][0] if "name_categorie" in addRow and addRow["name_categorie"] != None else None
+            id_saga = addRow["name_saga"][0] if "name_saga" in addRow and addRow["name_saga"] != None else None
+            id_book_publishing = addRow["name_book_publishing"][0] if "name_book_publishing" in addRow and addRow["name_book_publishing"] != None else None
+            id_owner = addRow["name_owner"][0] if "name_owner" in addRow and addRow["name_owner"] != None else None
+            id_location = addRow["name_location"][0] if "name_location" in addRow and addRow["name_location"] != None else None
+            
             db_Bib = saga_db.Bibliotheque()
-            db_Bib.id_categorie = addRow["name_categorie"] if "name_categorie" in addRow else None
-            db_Bib.id_saga = addRow["name_saga"] if "name_saga" in addRow else None
+            db_Bib.id_categorie = id_categorie
+            db_Bib.id_saga = id_saga
             db_Bib.number = addRow["number"] if "number" in addRow else ""
             db_Bib.name = addRow["name"] if "name" in addRow else ""
-            db_Bib.id_book_publishing = addRow["name_book_publishing"] if "name_book_publishing" in addRow else None
-            db_Bib.id_owner = addRow["name_owner"] if "name_owner" in addRow else None
-            db_Bib.id_location = addRow["name_location"] if "name_location" in addRow else None
+            db_Bib.id_book_publishing = id_book_publishing
+            db_Bib.id_owner = id_owner
+            db_Bib.id_location = id_location
             self.db_session.add(db_Bib)
             self.db_session.flush()
             # At this point, the object db_Bib has been pushed to the DB, 
@@ -255,6 +280,14 @@ class BibliothequeDashboardAddHandler(web.handler.JsonHandler):
 
                 self.db_session.commit()
 
+            if "authors" in addRow and addRow["authors"] != None:   
+                # Ajout des nouveaux éléments
+                for id_auteur in addRow["authors"]:
+                    db_bookAuteur = saga_db.Bibliotheque_AuteurBibliotheque()
+                    db_bookAuteur.id_book_list = id_book_list
+                    db_bookAuteur.id_author = id_auteur
+                    self.db_session.add(db_bookAuteur)
+                    self.db_session.commit()
 
             out.set_body("Nouvelle ligne ajoutée dans la table Bibliotheque")
 
@@ -289,7 +322,7 @@ class BibliothequeDashboardDelHandler(web.handler.JsonHandler):
                 self.db_session.commit()
 
             # Suppression dans la table Author_book_list
-            authorBookList = self.db_session.query(saga_db.AuteurBibliotheque).filter_by(id_book_list=delRow).first()
+            authorBookList = self.db_session.query(saga_db.Bibliotheque_AuteurBibliotheque).filter_by(id_book_list=delRow).first()
             if not authorBookList is None:
                 self.db_session.delete(authorBookList)
                 self.db_session.commit()           
@@ -426,3 +459,24 @@ class BibliothequeLocationHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
+@web.route("/api/bibliotheque/liste/author")
+class BibliothequeAuthorHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_Auteur) \
+                .order_by(saga_db.Bibliotheque_Auteur.name_author)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "text": param.name_author,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
