@@ -316,6 +316,28 @@ class BibliothequeCategorieHandler(web.handler.JsonHandler):
 
         self.write_json(out.to_dict())
 
+@web.route("/api/bibliotheque/liste/job")
+class BibliothequeJobHandler(web.handler.JsonHandler):
+    def post(self):
+
+        out = web.handler.JsonResponse()
+
+        if out.ok():
+
+            qry = self.db_session.query(saga_db.Bibliotheque_Job) \
+                .order_by(saga_db.Bibliotheque_Job.name_job)
+
+            tabParam=[]
+            for param in qry.all():  
+                tabParam.append({
+                    "id": param.id,
+                    "text": param.name_job,
+                })
+
+            out.set_body(tabParam)
+
+        self.write_json(out.to_dict())
+
 @web.route("/api/bibliotheque/liste/saga")
 class BibliothequeSagaHandler(web.handler.JsonHandler):
     def post(self):
