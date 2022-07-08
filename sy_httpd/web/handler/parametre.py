@@ -977,7 +977,7 @@ class BlurayCoffretAddHandler(web.handler.JsonHandler):
         if out.ok() and user_id:
 
             db_param = saga_db.Bluray_Coffret()
-            db_param.name_author = addRow["name_coffret"] if "name_coffret" in addRow else ""
+            db_param.name_coffret = addRow["name_coffret"] if "name_coffret" in addRow else ""
 
             self.db_session.add(db_param)
             self.db_session.commit()
